@@ -1,0 +1,271 @@
+# Backend-Frontend Integration Plan
+
+## Current Backend Analysis
+
+### **Backend Architecture (Unchanged)**
+```
+whisperai/
+├── src/
+│   ├── audio_processor.py    # File validation & processing
+│   ├── output_formatter.py   # Result formatting
+│   └── transcriber.py        # Whisper integration
+├── main.py                   # CLI entry point
+├── config.py                 # Configuration settings
+└── requirements.txt          # Dependencies
+```
+
+### **Backend Capabilities (Ready for Integration)**
+
+#### **1. File Processing (`audio_processor.py`)**
+- **Supported Formats**: mp3, wav, flac, m4a, aac, mp4, avi, mov, mkv
+- **File Validation**: Size limits (500MB), format checking, existence validation
+- **Audio Extraction**: Video files → audio conversion via FFmpeg
+- **File Info**: Duration, sample rate, channels, codec detection
+
+#### **2. Transcription (`transcriber.py`)**
+- **Model Support**: tiny, base, small, medium, large
+- **Language Detection**: Auto-detection with confidence scores
+- **Task Types**: transcribe, translate
+- **Output Structure**: text, segments, language, processing_time, model_used
+
+#### **3. Output Formatting (`output_formatter.py`)**
+- **Formats**: txt, json, srt
+- **Structured Data**: Complete transcription with metadata
+- **File Saving**: Save results to specified paths
+
+## Integration Architecture
+
+### **API Layer (New - To Be Created)**
+```
+api/
+├── __init__.py
+├── routes/
+│   ├── __init__.py
+│   ├── upload.py      # File upload endpoint
+│   ├── transcribe.py  # Transcription endpoint
+│   └── download.py    # Download endpoint
+├── middleware/
+│   ├── __init__.py
+│   ├── cors.py        # CORS handling
+│   └── auth.py        # Basic auth (if needed)
+└── utils/
+    ├── __init__.py
+    └── file_handler.py # Temporary file management
+```
+
+### **Integration Points**
+
+#### **1. File Upload Integration**
+**Frontend**: File upload area → **Backend**: `audio_processor.validate_file()`
+```python
+# API Endpoint: POST /api/upload
+{
+    "success": true,
+    "file_info": {
+        "name": "audio.mp3",
+        "size_mb": 2.5,
+        "duration": 120.5,
+        "format": ".mp3"
+    }
+}
+```
+
+#### **2. Transcription Integration**
+**Frontend**: Transcribe button → **Backend**: `transcriber.transcribe_audio()`
+```python
+# API Endpoint: POST /api/transcribe
+{
+    "success": true,
+    "text": "Full transcription text",
+    "segments": [
+        {"start": 0.0, "end": 5.0, "text": "Segment text"}
+    ],
+    "language": "en",
+    "confidence": 98.5,
+    "processing_time": 5.23,
+    "model_used": "base"
+}
+```
+
+#### **3. Download Integration**
+**Frontend**: Download button → **Backend**: `output_formatter.save_output()`
+```python
+# API Endpoint: GET /api/download?format=json&fileId=123
+# Returns: Formatted file download
+```
+
+## Implementation Plan
+
+### **Phase 1: Core API Layer**
+1. **FastAPI Setup**
+   - Install FastAPI, uvicorn
+   - Create basic API structure
+   - Add CORS middleware
+
+2. **File Upload API**
+   - `POST /api/upload`
+   - Use `audio_processor.validate_file()`
+   - Return file validation results
+
+3. **Transcription API**
+   - `POST /api/transcribe`
+   - Use `transcriber.transcribe_audio()`
+   - Return structured transcription data
+
+### **Phase 2: Frontend Integration**
+1. **Replace Dummy Data**
+   - Update frontend to call real APIs
+   - Handle API responses
+   - Display real transcription results
+
+2. **Error Handling**
+   - File validation errors
+   - Transcription failures
+   - Network errors
+
+3. **Progress Indicators**
+   - Upload progress
+   - Transcription progress
+   - Loading states
+
+### **Phase 3: Enhanced Features**
+1. **Download API**
+   - `GET /api/download`
+   - Multiple format support (txt, json, srt)
+   - File generation and download
+
+2. **Settings Integration**
+   - Model selection (tiny, base, small, medium, large)
+   - Language settings (auto vs manual)
+   - Output format preferences
+
+## Data Flow Architecture
+
+### **File Upload Flow**
+```
+Frontend Upload → API Upload Endpoint → audio_processor.validate_file() → File Info Response
+```
+
+### **Transcription Flow**
+```
+Frontend Transcribe → API Transcribe Endpoint → transcriber.transcribe_audio() → Transcription Response
+```
+
+### **Download Flow**
+```
+Frontend Download → API Download Endpoint → output_formatter.save_output() → File Download
+```
+
+## Key Integration Points
+
+### **1. File Validation**
+- **Frontend**: Display supported formats, file size limits
+- **Backend**: `config.SUPPORTED_AUDIO_FORMATS`, `config.MAX_FILE_SIZE_MB`
+- **Integration**: Real-time validation feedback
+
+### **2. Transcription Display**
+- **Frontend**: Segments, language, confidence display
+- **Backend**: `segments`, `language`, confidence data
+- **Integration**: Direct data mapping
+
+### **3. Settings Panel**
+- **Frontend**: Model selection, language options
+- **Backend**: `config.AVAILABLE_MODELS`, language detection
+- **Integration**: Configuration API endpoints
+
+## Error Handling Strategy
+
+### **File Validation Errors**
+```python
+{
+    "success": false,
+    "error": "Unsupported file format: .xyz",
+    "supported_formats": [".mp3", ".wav", ".flac", ".mp4"]
+}
+```
+
+### **Transcription Errors**
+```python
+{
+    "success": false,
+    "error": "Transcription failed: File not found",
+    "file_path": "audio.mp3"
+}
+```
+
+### **Network Errors**
+- Frontend: Retry mechanisms
+- Backend: Proper HTTP status codes
+- User: Clear error messages
+
+## Configuration Management
+
+### **Backend Config (Unchanged)**
+- `config.py` remains as source of truth
+- API reads from existing config
+- No backend modifications needed
+
+### **Frontend Config**
+- Settings panel reads from API
+- User preferences stored locally
+- Real-time configuration updates
+
+## Security Considerations
+
+### **File Upload Security**
+- File type validation (backend already does this)
+- File size limits (backend already enforces)
+- Temporary file cleanup
+
+### **API Security**
+- CORS configuration for frontend domain
+- Rate limiting for transcription requests
+- Input sanitization
+
+## Performance Optimization
+
+### **File Processing**
+- Use existing backend file handling
+- No changes to `audio_processor.py`
+- Leverage existing FFmpeg integration
+
+### **Transcription**
+- Use existing Whisper integration
+- No changes to `transcriber.py`
+- Maintain current performance
+
+### **Output Formatting**
+- Use existing formatter
+- No changes to `output_formatter.py`
+- Leverage existing format support
+
+## Success Criteria
+
+### **Phase 1 Complete When:**
+- ✅ API layer is functional
+- ✅ File upload works
+- ✅ Transcription API works
+- ✅ Basic error handling
+
+### **Phase 2 Complete When:**
+- ✅ Frontend uses real APIs
+- ✅ Real transcription displayed
+- ✅ Error messages shown
+- ✅ Progress indicators work
+
+### **Phase 3 Complete When:**
+- ✅ Download functionality works
+- ✅ Settings panel functional
+- ✅ Multiple format support
+- ✅ Complete user experience
+
+## Notes
+- **No backend modifications required**
+- **Leverage existing backend capabilities**
+- **Focus on API layer creation**
+- **Maintain current backend performance**
+- **Use existing error handling patterns**
+description:
+globs:
+alwaysApply: false
+---

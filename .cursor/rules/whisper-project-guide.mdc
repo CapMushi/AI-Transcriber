@@ -1,0 +1,84 @@
+# Whisper AI Transcription Project Guide
+
+## Project Overview
+This is a Python-based audio/video transcription project using OpenAI's Whisper model. The goal is to extract comprehensive text information from audio/video sources with minimal complexity.
+
+## Key Principles
+- **Simplicity First**: Start with basic functionality, add complexity later
+- **Open Source Only**: Use only open-source models and tools
+- **User-Friendly**: Clear interfaces and documentation
+- **Extensible Design**: Structure for future enhancements
+
+## Project Structure Guidelines
+```
+whisperai/
+├── src/
+│   ├── transcriber.py      # Main Whisper integration
+│   ├── audio_processor.py  # File handling and preprocessing
+│   └── output_formatter.py # Results formatting
+├── main.py                 # Entry point
+├── requirements.txt        # Dependencies
+├── config.py              # Configuration settings
+└── README.md              # Project documentation
+```
+
+## Technical Guidelines
+
+### Dependencies
+- `openai-whisper`: Core transcription engine
+- `ffmpeg-python`: Audio/video processing
+- `argparse`: Command-line interface
+- `pathlib`: File handling
+
+### Model Selection
+- Start with `base` model for development
+- Support multiple models: tiny, base, small, medium, large
+- Use `turbo` for English-only applications
+- Use multilingual models for translation tasks
+
+### File Format Support
+- Audio: mp3, wav, flac, m4a
+- Video: mp4, avi, mov (extract audio)
+- Handle common formats via ffmpeg
+
+### Output Information to Extract
+- Full transcription text
+- Detected language and confidence
+- Timestamped segments
+- Translation (if requested)
+- Processing metadata
+
+### Error Handling
+- Invalid file formats
+- Missing ffmpeg dependency
+- Memory constraints
+- Network issues for model downloads
+
+### Code Style
+- Use descriptive variable names
+- Add docstrings for main functions
+- Handle exceptions gracefully
+- Provide clear error messages
+
+## Development Phases
+1. **Basic Setup**: Project structure and dependencies
+2. **Core Transcription**: Whisper integration and file handling
+3. **Enhanced Features**: Language detection, translation, multiple models
+4. **Polish**: Error handling, documentation, user interface
+
+## Future Considerations
+- Web interface for file uploads
+- Batch processing capabilities
+- Real-time transcription
+- Custom model fine-tuning
+- Integration with other AI services
+
+## Notes
+- Keep the initial implementation simple and focused
+- Focus on extracting maximum information from Whisper outputs
+- Ensure the project is easy to understand and modify
+- Document any assumptions or limitations clearly
+description:
+globs:
+alwaysApply: false
+---

@@ -1,0 +1,88 @@
+{
+  "success": true,
+  "file_path": "testing files\\sample-0.mp3",
+  "model_used": "base",
+  "language": "en",
+  "processing_time": 1.5144500732421875,
+  "task": "transcribe",
+  "text": " Perhaps he made up to the party afterwards and took her and his heart at end continued. It was not fear-wise set it over her. Edmund.",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 5.76,
+      "text": " Perhaps he made up to the party afterwards and took her and his heart at end continued.",
+      "tokens": [
+        50364,
+        10517,
+        415,
+        1027,
+        493,
+        281,
+        264,
+        3595,
+        10543,
+        293,
+        1890,
+        720,
+        293,
+        702,
+        1917,
+        412,
+        917,
+        7014,
+        13,
+        50652
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.4229287367600661,
+      "compression_ratio": 1.2429906542056075,
+      "no_speech_prob": 0.02177479863166809
+    },
+    {
+      "id": 1,
+      "seek": 0,
+      "start": 5.76,
+      "end": 9.48,
+      "text": " It was not fear-wise set it over her.",
+      "tokens": [
+        50652,
+        467,
+        390,
+        406,
+        4240,
+        12,
+        3711,
+        992,
+        309,
+        670,
+        720,
+        13,
+        50838
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.4229287367600661,
+      "compression_ratio": 1.2429906542056075,
+      "no_speech_prob": 0.02177479863166809
+    },
+    {
+      "id": 2,
+      "seek": 0,
+      "start": 9.48,
+      "end": 9.98,
+      "text": " Edmund.",
+      "tokens": [
+        50838,
+        3977,
+        35578,
+        13,
+        50863
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.4229287367600661,
+      "compression_ratio": 1.2429906542056075,
+      "no_speech_prob": 0.02177479863166809
+    }
+  ]
+}
