@@ -48,7 +48,8 @@ class WhisperTranscriber:
     
     def transcribe_audio(self, audio_path: Union[str, Path], 
                         language: str = None,
-                        task: str = "transcribe") -> Dict[str, Any]:
+                        task: str = "transcribe",
+                        model: str = None) -> Dict[str, Any]:
         """
         Transcribe audio file using Whisper
         
@@ -56,10 +57,17 @@ class WhisperTranscriber:
             audio_path: Path to the audio file
             language: Language code (None for auto-detection)
             task: Task type ("transcribe" or "translate")
+            model: Model to use (if different from current)
             
         Returns:
             Dictionary containing transcription results
         """
+        # Load new model if specified and different from current
+        if model and model != self.model_name:
+            print(f"Switching to model: {model}")
+            self.model_name = model
+            self.model_loaded = False
+        
         if not self.model_loaded:
             if not self.load_model():
                 return {"error": "Failed to load Whisper model"}

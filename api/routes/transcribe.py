@@ -85,7 +85,8 @@ async def transcribe_file(request: TranscriptionRequest):
         result = transcriber.transcribe_audio(
             audio_path=audio_path,
             language=request.language if request.language != "auto" else None,
-            task=request.task
+            task=request.task,
+            model=request.model
         )
         
         if not result.get("success", False):
