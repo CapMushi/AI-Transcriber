@@ -27,18 +27,29 @@ class AudioProcessor:
             "ffmpeg",  # If it's in PATH
             "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe",
             "C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe",
+            "ffmpeg.exe",  # Windows executable
         ]
         
         for path in possible_paths:
             try:
-                result = subprocess.run([path, '-version'], capture_output=True, text=True)
+                result = subprocess.run([path, '-version'], capture_output=True, text=True, timeout=10)
                 if result.returncode == 0:
                     print(f"✅ Found FFmpeg at: {path}")
                     return path
-            except:
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
                 continue
         
-        print("⚠️ FFmpeg not found, using fallback duration detection")
+        print("⚠️ FFmpeg not found in common locations, trying system PATH...")
+        try:
+            # Try to run ffmpeg directly from PATH
+            result = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                print("✅ Found FFmpeg in system PATH")
+                return "ffmpeg"
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            pass
+        
+        print("⚠️ FFmpeg not found, duration detection may fail")
         return "ffmpeg"  # Fallback
     
     def validate_file(self, file_path: Union[str, Path]) -> Tuple[bool, str]:
@@ -102,41 +113,66 @@ class AudioProcessor:
             
             # Get audio/video metadata using ffmpeg
             try:
-                # Use subprocess to call ffmpeg directly
+                # Use subprocess to call ffmpeg directly - just get metadata, don't process
                 result = subprocess.run([
-                    self.ffmpeg_path, '-i', str(file_path), '-f', 'null', '-'
-                ], capture_output=True, text=True, stderr=subprocess.PIPE)
+                    self.ffmpeg_path, '-i', str(file_path)
+                ], capture_output=True, text=True, timeout=30)
                 
                 # Parse duration from stderr output
                 import re
-                duration_match = re.search(r'Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})', result.stderr)
-                if duration_match:
-                    hours, minutes, seconds, centiseconds = map(int, duration_match.groups())
-                    file_info['duration'] = hours * 3600 + minutes * 60 + seconds + centiseconds / 100
-                    print(f"✅ Extracted duration: {file_info['duration']}s")
-                else:
-                    # Try alternative duration format
-                    duration_match = re.search(r'Duration: (\d{2}):(\d{2}):(\d{2})', result.stderr)
+                
+                # Try multiple duration patterns to handle different FFmpeg output formats
+                duration_patterns = [
+                    r'Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})',  # HH:MM:SS.xx
+                    r'Duration: (\d{2}):(\d{2}):(\d{2})',           # HH:MM:SS
+                    r'Duration: (\d{1,2}):(\d{2}):(\d{2})\.(\d{2})', # H:MM:SS.xx
+                    r'Duration: (\d{1,2}):(\d{2}):(\d{2})',         # H:MM:SS
+                ]
+                
+                duration_found = False
+                for pattern in duration_patterns:
+                    duration_match = re.search(pattern, result.stderr)
                     if duration_match:
-                        hours, minutes, seconds = map(int, duration_match.groups())
-                        file_info['duration'] = hours * 3600 + minutes * 60 + seconds
-                        print(f"✅ Extracted duration (alt): {file_info['duration']}s")
-                    else:
-                        file_info['duration'] = 0
-                        print(f"⚠️ Could not extract duration from: {result.stderr[:200]}...")
+                        groups = duration_match.groups()
+                        if len(groups) == 4:  # Has centiseconds
+                            hours, minutes, seconds, centiseconds = map(int, groups)
+                            file_info['duration'] = hours * 3600 + minutes * 60 + seconds + centiseconds / 100
+                        else:  # No centiseconds
+                            hours, minutes, seconds = map(int, groups)
+                            file_info['duration'] = hours * 3600 + minutes * 60 + seconds
+                        
+                        print(f"✅ Extracted duration: {file_info['duration']}s using pattern: {pattern}")
+                        duration_found = True
+                        break
+                
+                if not duration_found:
+                    file_info['duration'] = 0
+                    print(f"⚠️ Could not extract duration from FFmpeg output. Stderr preview: {result.stderr[:300]}...")
+                
+                # Get basic audio info
+                file_info['sample_rate'] = 0  # Will be updated if we can parse it
+                file_info['channels'] = 0
+                file_info['codec'] = 'unknown'
                 
                 # Get basic audio info
                 file_info['sample_rate'] = 0  # Will be updated if we can parse it
                 file_info['channels'] = 0
                 file_info['codec'] = 'unknown'
                         
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+                # If ffmpeg fails, still return basic info
+                file_info['duration'] = 0
+                file_info['sample_rate'] = 0
+                file_info['channels'] = 0
+                file_info['codec'] = 'unknown'
+                print(f"⚠️ FFmpeg error (file: {file_path.name}): {e}")
             except Exception as e:
                 # If ffmpeg fails, still return basic info
                 file_info['duration'] = 0
                 file_info['sample_rate'] = 0
                 file_info['channels'] = 0
                 file_info['codec'] = 'unknown'
-                print(f"⚠️ FFmpeg error: {e}")
+                print(f"⚠️ Unexpected error during duration extraction: {e}")
             
             return file_info
             

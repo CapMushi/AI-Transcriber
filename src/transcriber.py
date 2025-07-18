@@ -84,12 +84,30 @@ class WhisperTranscriber:
             # Calculate processing time
             processing_time = time.time() - start_time
             
+            # Calculate confidence from segments
+            segments = result.get("segments", [])
+            confidence = 0.0
+            if segments:
+                # Calculate average confidence from all segments
+                total_confidence = 0.0
+                for segment in segments:
+                    # Convert avg_logprob to confidence percentage
+                    # avg_logprob is typically negative, closer to 0 means higher confidence
+                    avg_logprob = segment.get("avg_logprob", -1.0)
+                    # Convert log probability to confidence (0-100%)
+                    # Formula: confidence = max(0, (avg_logprob + 1) * 100)
+                    segment_confidence = max(0, min(100, (avg_logprob + 1) * 100))
+                    total_confidence += segment_confidence
+                
+                confidence = total_confidence / len(segments)
+            
             # Prepare response
             transcription_result = {
                 "success": True,
                 "text": result.get("text", ""),
                 "language": result.get("language", "unknown"),
-                "segments": result.get("segments", []),
+                "segments": segments,
+                "confidence": confidence,
                 "processing_time": processing_time,
                 "model_used": self.model_name,
                 "file_path": str(audio_path),
