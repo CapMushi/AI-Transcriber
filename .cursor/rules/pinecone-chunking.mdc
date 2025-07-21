@@ -1,0 +1,205 @@
+---
+alwaysApply: false
+---
+## Overview
+Add Pinecone vector storage for transcription chunks without disrupting existing functionality. Store intelligent chunks with timestamps for future RAG implementation. Current transcription workflow remains unchanged - files are still processed from temporary storage.
+
+## Key Principles
+- **Non-Disruptive**: Existing transcription flow unchanged
+- **Background Storage**: Pinecone storage happens after transcription
+- **Intelligent Chunking**: Use Whisper segments as natural chunks
+- **Timestamp Preservation**: Maintain start/end times for future queries
+- **Graceful Fallbacks**: Pinecone failures don't break transcription
+
+## Project Structure Changes
+whisperai/
+├── src/
+│ ├── vector_store.py # NEW: Pinecone operations
+│ └── chunking_utils.py # NEW: Intelligent chunking
+├── api/
+│ └── utils/
+│ └── vector_handler.py # NEW: API-level vector operations
+├── .env # NEW: Environment variables
+└── config.py # MODIFIED: Add Pinecone config
+
+
+## Files to Create
+
+### **New Files**
+- `src/vector_store.py` - Pinecone client and chunking operations
+- `api/utils/vector_handler.py` - API-level vector handling
+- `src/chunking_utils.py` - Intelligent chunking logic
+- `.env` - Environment variables for API keys
+
+### **Files to Modify**
+- `config.py` - Add Pinecone configuration
+- `requirements.txt` - Add Pinecone and OpenAI dependencies
+- `api/routes/transcribe.py` - Add storage call after transcription
+
+## Chunking Strategy
+
+### **Primary: Segment-Based Chunking**
+Use Whisper segments as natural chunks with preserved timestamps:
+```python
+# Whisper segments become chunks
+segments = [
+    {"start": 0.0, "end": 2.5, "text": "Hello world,"},
+    {"start": 2.5, "end": 5.0, "text": "this is a meeting about Q4 sales"},
+    {"start": 5.0, "end": 7.5, "text": "We need to increase revenue by 20%"}
+]
+```
+
+### **Fallback: Text-Based Chunking**
+If segments are too large or missing:
+```python
+chunk_size = 1000  # characters
+overlap = 200      # characters
+```
+
+## Configuration Parameters
+```python
+# config.py additions
+PINECONE_API_KEY = os.getenv('PINECONE_API_KEY', '')
+PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', '')
+PINECONE_INDEX_NAME = os.getenv('PINECONE_INDEX_NAME', 'whisper-transcriptions')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+
+# Chunking parameters
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+CHUNKING_CONFIG = {
+    "segment_based": True,      # Use Whisper segments as primary chunks
+    "max_segment_length": 500,  # If segment > 500 chars, split it
+    "min_chunk_size": 50,       # Minimum chunk size
+    "max_chunk_size": 1000,     # Maximum chunk size
+    "overlap_size": 200,        # Overlap between chunks
+    "preserve_timestamps": True, # Keep start/end times
+    "preserve_context": True     # Maintain segment boundaries
+}
+```
+
+## Vector Metadata Structure
+```python
+# Each chunk vector metadata
+METADATA_STRUCTURE = {
+    "file_id": "unique_file_identifier",
+    "text": "chunk_text_content",
+    "start_time": 0.0,          # Timestamp start
+    "end_time": 2.5,            # Timestamp end
+    "segment_index": 0,          # Original segment index
+    "chunk_type": "segment",     # segment or text_chunk
+    "language": "en",
+    "model_used": "base",
+    "confidence": 95.2,
+    "original_filename": "audio.mp3",
+    "file_size_mb": 2.5,
+    "duration": 30.5,
+    "upload_date": "2024-01-15T10:30:00",
+    "file_type": ".mp3",
+    "is_audio": True,
+    "is_video": False
+}
+```
+
+## Integration Points
+
+### **Modified Transcription Flow**
+```python
+# Current flow (unchanged)
+User Upload → Validate → Transcribe → Display Results
+
+# New flow (with Pinecone)
+User Upload → Validate → Transcribe → Display Results → Store Chunks in Pinecone
+```
+
+### **Transcription Endpoint Modification**
+```python
+# api/routes/transcribe.py (minimal changes)
+@router.post("/transcribe")
+async def transcribe_file(request: TranscriptionRequest):
+    # ... existing transcription logic ...
+    
+    if result.get("success", False):
+        # NEW: Store chunks in Pinecone (non-blocking)
+        try:
+            await store_transcription_chunks(
+                file_id=generate_file_id(),
+                transcription_data=result,
+                file_metadata=file_info
+            )
+        except Exception as e:
+            print(f"⚠️ Pinecone storage failed: {e}")
+            # Don't fail transcription if Pinecone fails
+        
+        return TranscriptionResponse(success=True, **result)
+```
+
+## Implementation Strategy
+
+### **Phase 1: Foundation Setup (1-2 days)**
+1. Add dependencies: `pinecone-client`, `openai`, `python-dotenv`
+2. Create `.env` template with API keys
+3. Update `config.py` with Pinecone settings
+4. Set up environment validation
+
+### **Phase 2: Core Implementation (2-3 days)**
+1. Create `PineconeVectorStore` class in `src/vector_store.py`
+2. Implement intelligent chunking based on Whisper segments
+3. Create `VectorHandler` class in `api/utils/vector_handler.py`
+4. Implement metadata-rich storage with timestamps
+
+### **Phase 3: Integration (1 day)**
+1. Modify transcribe endpoint to call storage (non-blocking)
+2. Add error handling and graceful fallbacks
+3. Ensure existing functionality remains unchanged
+4. Test with sample files
+
+## Error Handling Strategy
+
+### **Graceful Degradation**
+```python
+# Pinecone storage should never break transcription
+try:
+    store_chunks_in_pinecone(transcription_data)
+except Exception as e:
+    print(f"⚠️ Pinecone storage failed: {e}")
+    # Continue with normal transcription flow
+```
+
+### **Configuration Validation**
+```python
+def validate_pinecone_config():
+    if not PINECONE_API_KEY:
+        print("⚠️ Pinecone API key not found")
+        return False
+    if not OPENAI_API_KEY:
+        print("⚠️ OpenAI API key not found")
+        return False
+    return True
+```
+
+## Success Criteria
+- ✅ **No disruption** to existing transcription workflow
+- ✅ **Intelligent chunking** based on Whisper segments
+- ✅ **Timestamp preservation** for future RAG queries
+- ✅ **Graceful fallbacks** if Pinecone unavailable
+- ✅ **Metadata-rich storage** for future analytics
+- ✅ **Non-blocking storage** (async/background)
+- ✅ **Error isolation** (Pinecone failures don't break transcription)
+
+## Future RAG Readiness
+The stored chunks will enable future RAG queries:
+- Semantic search across all transcriptions
+- Time-based segment retrieval
+- Language and model filtering
+- Cross-file analysis and summarization
+- Question-answering capabilities
+
+## Important Notes
+1. **Existing functionality must remain unchanged**
+2. **Storage should be non-blocking** (async/background)
+3. **Error handling should be graceful** (don't break transcription)
+4. **Timestamps must be preserved** for future RAG queries
+5. **Chunking should be intelligent** based on Whisper segments
+6. **Metadata should be rich** for future analytics
+7. **Current transcription uses temporary files** - this doesn't change

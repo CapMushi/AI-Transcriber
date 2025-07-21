@@ -15,6 +15,7 @@ from src.transcriber import WhisperTranscriber
 from src.audio_processor import AudioProcessor
 from src.output_formatter import OutputFormatter
 from api.utils.file_handler import FileHandler
+from api.utils.vector_handler import VectorHandler
 
 router = APIRouter(prefix="/api", tags=["transcribe"])
 
@@ -23,6 +24,7 @@ transcriber = WhisperTranscriber()
 audio_processor = AudioProcessor()
 output_formatter = OutputFormatter()
 file_handler = FileHandler()
+vector_handler = VectorHandler()
 
 
 class TranscriptionRequest(BaseModel):
@@ -45,6 +47,7 @@ class TranscriptionResponse(BaseModel):
     model_used: str = ""
     file_path: str = ""
     error: str = None
+    storage_status: Dict[str, Any] = None
 
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
@@ -96,7 +99,50 @@ async def transcribe_file(request: TranscriptionRequest):
                 error=result.get("error", "Unknown error")
             )
         
-        # Format response
+        # PHASE 2: Store chunks in Pinecone (non-blocking)
+        storage_status = None
+        try:
+            # Get file information for metadata
+            file_info = audio_processor.get_file_info(request.file_path)
+            
+            # Generate unique file ID
+            file_id = vector_handler.generate_file_id()
+            
+            # Prepare file metadata
+            file_metadata = vector_handler.prepare_file_metadata(
+                original_filename=os.path.basename(request.file_path),
+                file_info=file_info
+            )
+            
+            # Store chunks in Pinecone (non-blocking)
+            storage_result = await vector_handler.store_transcription_chunks(
+                file_id=file_id,
+                transcription_data=result,
+                file_metadata=file_metadata
+            )
+            
+            storage_status = {
+                "success": storage_result.get("success", False),
+                "message": storage_result.get("message", ""),
+                "file_id": file_id,
+                "chunks_stored": storage_result.get("chunks_stored", 0)
+            }
+            
+            if storage_result.get("success", False):
+                print(f"✅ Stored {storage_result.get('chunks_stored', 0)} chunks in Pinecone for file {file_id}")
+            else:
+                print(f"⚠️ Pinecone storage failed: {storage_result.get('error', 'Unknown error')}")
+                
+        except Exception as e:
+            print(f"⚠️ Pinecone storage error: {e}")
+            storage_status = {
+                "success": False,
+                "message": f"Storage error: {str(e)}",
+                "file_id": None,
+                "chunks_stored": 0
+            }
+        
+        # Format response (existing functionality unchanged)
         return TranscriptionResponse(
             success=True,
             message="Transcription completed successfully",
@@ -106,7 +152,8 @@ async def transcribe_file(request: TranscriptionRequest):
             confidence=result.get("confidence", 0.0),
             processing_time=result.get("processing_time", 0.0),
             model_used=result.get("model_used", ""),
-            file_path=result.get("file_path", "")
+            file_path=result.get("file_path", ""),
+            storage_status=storage_status
         )
         
     except Exception as e:
@@ -172,4 +219,22 @@ async def get_available_models():
     return {
         "available_models": ["tiny", "base", "small", "medium", "large"],
         "default_model": "base"
-    } 
+    }
+
+
+@router.get("/storage-status")
+async def get_storage_status():
+    """
+    Get Pinecone storage status
+    
+    Returns:
+        Dictionary with storage configuration status
+    """
+    try:
+        status = vector_handler.get_storage_status()
+        return status
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Status check failed: {str(e)}"
+        } 
