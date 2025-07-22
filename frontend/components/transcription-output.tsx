@@ -35,6 +35,26 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
   const [showInfoPopup, setShowInfoPopup] = useState(false)
   const [selectedModel, setSelectedModel] = useState('base')
 
+  // Function to check if a segment should be highlighted based on comparison timestamps
+  const shouldHighlightSegment = (segmentStart: number, segmentEnd: number): boolean => {
+    if (!comparisonResult?.timestamps || !comparisonResult.found) {
+      return false
+    }
+
+    return comparisonResult.timestamps.some((timestamp: any) => {
+      const matchStart = timestamp.start_time
+      const matchEnd = timestamp.end_time
+      
+      // Calculate actual overlap duration
+      const overlapStart = Math.max(segmentStart, matchStart)
+      const overlapEnd = Math.min(segmentEnd, matchEnd)
+      const overlapDuration = Math.max(0, overlapEnd - overlapStart)
+      
+      // Only highlight if there's meaningful overlap (more than 0.1 seconds)
+      return overlapDuration > 0.1
+    })
+  }
+
   // Load available models on component mount
   React.useEffect(() => {
     loadAvailableModels()
@@ -185,6 +205,14 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
 
   return (
     <GlassCard opacity="medium" blur="lg" className="relative p-4 w-full h-full flex flex-col border-dark-secondary/30">
+      {/* Transcription Header */}
+      <h2 className="text-lg font-semibold text-light-gray mb-4 flex items-center gap-2">
+        <div className="p-1 rounded-full bg-accent-orange/20 border border-accent-orange/30">
+          <Languages className="h-4 w-4 text-accent-orange" />
+        </div>
+        Transcription
+      </h2>
+      
       {/* Top-right corner buttons */}
       <div className="absolute top-4 right-4 z-10 flex gap-2 items-center">
         {/* Model Selection Dropdown */}
@@ -278,8 +306,8 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
         <div className="relative" data-popup>
           <button
             onClick={() => setShowInfoPopup(!showInfoPopup)}
-            className="p-2 rounded-md transition-all duration-200 bg-accent-orange/20 border border-accent-orange/30 text-accent-orange hover:bg-accent-orange/30 flex items-center gap-1 text-xs"
-            title="Transcription information"
+            className="p-2 rounded-md transition-all duration-200 flex items-center gap-1 text-xs bg-dark-secondary/20 border border-dark-secondary/30 text-light-gray hover:bg-accent-orange/20 hover:border-accent-orange/30 hover:text-accent-orange hover:scale-105"
+            title="Transcription Info"
           >
             <Info className="h-3 w-3" />
             Info
@@ -287,86 +315,136 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
 
           {/* Info Popup */}
           {showInfoPopup && (
-            <div data-popup className="absolute top-full right-0 mt-2 bg-dark-secondary/95 backdrop-blur-md border border-dark-secondary/30 rounded-lg p-3 shadow-lg z-20 min-w-[140px]">
-              <div className="space-y-2 text-xs text-light-gray">
+            <div data-popup className="absolute top-full right-0 mt-2 bg-dark-secondary/95 backdrop-blur-md border border-dark-secondary/30 rounded-lg p-3 shadow-lg z-20 min-w-[200px]">
+              <div className="space-y-2 text-xs">
                 <div className="flex items-center gap-2">
-            <Languages className="h-3 w-3 text-accent-orange" />
-            <span>Language: {transcription.language || 'Unknown'}</span>
-          </div>
+                  <Languages className="h-3 w-3 text-accent-orange" />
+                  <span className="text-light-gray">Language: <span className="text-accent-orange">{transcription?.language || 'Auto'}</span></span>
+                </div>
                 <div className="flex items-center gap-2">
-            <Target className="h-3 w-3 text-accent-orange" />
-            <span>Confidence: {(transcription.confidence || 0).toFixed(1)}%</span>
-          </div>
+                  <Target className="h-3 w-3 text-accent-orange" />
+                  <span className="text-light-gray">Confidence: <span className="text-accent-orange">{(transcription?.confidence || 0) * 100}%</span></span>
+                </div>
                 <div className="flex items-center gap-2">
-            <Clock className="h-3 w-3 text-accent-orange" />
-            <span>Time: {(transcription.processing_time || 0).toFixed(1)}s</span>
-          </div>
-                {transcription.model_used && (
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-3 w-3 text-accent-orange" />
-                    <span>Model: {transcription.model_used}</span>
-                  </div>
-                )}
+                  <Clock className="h-3 w-3 text-accent-orange" />
+                  <span className="text-light-gray">Processing: <span className="text-accent-orange">{transcription?.processing_time || 0}s</span></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-3 w-3 text-accent-orange" />
+                  <span className="text-light-gray">Model: <span className="text-accent-orange">{transcription?.model_used || 'Unknown'}</span></span>
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      <h2 className="text-lg font-semibold text-light-gray mb-4 flex items-center gap-2">
-        <div className="p-1 rounded-full bg-accent-orange/20 border border-accent-orange/30">
-          <Languages className="h-4 w-4 text-accent-orange" />
-        </div>
-        Transcription
-        {transcription.model_used && (
-          <span className="text-xs text-accent-orange/70 ml-2">
-            (Model: {transcription.model_used})
-          </span>
-        )}
-      </h2>
-
-      {/* Internal scrollable area with custom scrollbar - flex-1 to take remaining space */}
-      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
-        <TooltipProvider>
-          <div className="text-light-gray text-sm leading-relaxed">
-            {transcription.segments?.map((segment, index) => (
-              <Tooltip key={index}>
-                <TooltipTrigger asChild>
-                  <span
-                    className={cn(
-                      "inline-block p-1 m-0.5 rounded-md transition-all duration-200",
-                      "bg-dark-secondary/[0.3] hover:bg-accent-orange/[0.15] hover:scale-[1.02] cursor-pointer border border-transparent hover:border-accent-orange/30",
+      {/* Two-column layout: Transcription and Timestamp Sidebar */}
+      <div className="flex gap-4 h-full mt-4">
+        {/* Left Column: Transcription Content */}
+        <div className="flex-1 overflow-y-auto">
+          <TooltipProvider>
+            <div className="text-light-gray text-sm leading-relaxed">
+              {transcription.segments?.map((segment, index) => {
+                const isHighlighted = shouldHighlightSegment(segment.start, segment.end)
+                return (
+                  <Tooltip key={index}>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={cn(
+                          "inline-block p-1 m-0.5 rounded-md transition-all duration-200",
+                          "cursor-pointer border border-transparent hover:border-accent-orange/30",
+                          isHighlighted 
+                            ? "bg-accent-orange/[0.3] border-accent-orange/50 hover:bg-accent-orange/[0.4] text-accent-orange font-medium" 
+                            : "bg-dark-secondary/[0.3] hover:bg-accent-orange/[0.15]"
+                        )}
+                      >
+                        {segment.text}{" "}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      className="bg-dark-secondary/95 backdrop-blur-md border border-dark-secondary/30 text-light-gray shadow-lg"
+                      side="top"
+                      sideOffset={8}
+                    >
+                      <div className="flex items-center gap-2 text-xs">
+                        <Clock className="h-3 w-3 text-accent-orange" />
+                        <span>
+                          {segment.start.toFixed(1)}s - {segment.end.toFixed(1)}s
+                        </span>
+                        {isHighlighted && (
+                          <span className="text-accent-orange ml-2">✓ Match</span>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              }) || (
+                transcription.text ? (
+                  <div className="text-light-gray/80 leading-relaxed">
+                    {transcription.text}
+                    {comparisonResult?.found && comparisonResult?.timestamps && (
+                      <div className="mt-2 p-2 bg-accent-orange/10 border border-accent-orange/20 rounded text-xs text-accent-orange">
+                        ⚠️ Highlighting not available for plain text. Use segments for timestamp highlighting.
+                      </div>
                     )}
-                  >
-                    {segment.text}{" "}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent 
-                  className="bg-dark-secondary/95 backdrop-blur-md border border-dark-secondary/30 text-light-gray shadow-lg"
-                  side="top"
-                  sideOffset={8}
-                >
-                  <div className="flex items-center gap-2 text-xs">
-                    <Clock className="h-3 w-3 text-accent-orange" />
-                    <span>
-                      {segment.start.toFixed(1)}s - {segment.end.toFixed(1)}s
-                    </span>
                   </div>
-                </TooltipContent>
-              </Tooltip>
-            )) || (
-              transcription.text ? (
-                <div className="text-light-gray/80 leading-relaxed">
-                  {transcription.text}
+                ) : (
+                  <div className="text-light-gray/60 text-center py-4">
+                    <p>No transcription segments available</p>
+                  </div>
+                )
+              )}
+            </div>
+          </TooltipProvider>
+        </div>
+
+        {/* Right Column: Timestamp Sidebar */}
+        {comparisonResult && comparisonResult.found && comparisonResult.timestamps && comparisonResult.timestamps.length > 0 && (
+          <div className="w-64 bg-dark-secondary/20 border border-dark-secondary/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Search className="h-4 w-4 text-accent-orange" />
+              <h3 className="text-sm font-semibold text-light-gray">Timestamps</h3>
+            </div>
+            
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {comparisonResult.timestamps.map((timestamp: any, index: number) => (
+                <div key={index} className="bg-dark-secondary/30 border border-dark-secondary/50 rounded p-3 hover:bg-dark-secondary/40 transition-all duration-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-accent-orange font-medium">Match {index + 1}</span>
+                    <span className="text-xs text-light-gray/70">{(timestamp.end_time - timestamp.start_time).toFixed(1)}s</span>
+                  </div>
+                  <div className="text-xs text-light-gray">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Clock className="h-3 w-3 text-accent-orange" />
+                      <span className="text-accent-orange font-medium">
+                        {timestamp.start_time.toFixed(1)}s - {timestamp.end_time.toFixed(1)}s
+                      </span>
+                    </div>
+                    <div className="text-light-gray/80 text-xs leading-relaxed">
+                      {transcription.segments?.find(seg => 
+                        seg.start <= timestamp.start_time && seg.end >= timestamp.end_time
+                      )?.text || "Content found in this time range"}
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div className="text-light-gray/60 text-center py-4">
-                  <p>No transcription segments available</p>
+              ))}
+            </div>
+            
+            <div className="mt-4 pt-3 border-t border-dark-secondary/30">
+              <div className="text-xs text-light-gray/70">
+                <div className="flex items-center justify-between mb-1">
+                  <span>Confidence:</span>
+                  <span className="text-accent-orange">{(comparisonResult.confidence * 100).toFixed(1)}%</span>
                 </div>
-              )
-            )}
+                <div className="flex items-center justify-between">
+                  <span>Total Matches:</span>
+                  <span className="text-accent-orange">{comparisonResult.timestamps.length}</span>
+                </div>
+              </div>
+            </div>
           </div>
-        </TooltipProvider>
+        )}
       </div>
 
       {/* Storage Progress Indicator */}
@@ -394,8 +472,8 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
         </div>
       )}
 
-      {/* Comparison Results */}
-      {comparisonResult && (
+      {/* Comparison Results Summary (only when no sidebar) */}
+      {comparisonResult && (!comparisonResult.found || !comparisonResult.timestamps || comparisonResult.timestamps.length === 0) && (
         <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
           <div className="flex items-center gap-2 mb-3">
             <Search className="h-5 w-5 text-blue-400" />
@@ -411,19 +489,6 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
                 <p><span className="text-accent-orange">Confidence:</span> {(comparisonResult.confidence * 100).toFixed(1)}%</p>
                 <p><span className="text-accent-orange">Matches found:</span> {comparisonResult.timestamps?.length || 0}</p>
               </div>
-              
-              {comparisonResult.timestamps && comparisonResult.timestamps.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-accent-orange text-sm font-semibold">Timestamps:</p>
-                  <div className="space-y-1">
-                    {comparisonResult.timestamps.map((timestamp: any, index: number) => (
-                      <div key={index} className="text-light-gray text-xs bg-dark-secondary/30 p-2 rounded">
-                        <span className="text-accent-orange">Match {index + 1}:</span> {timestamp.start_time.toFixed(1)}s - {timestamp.end_time.toFixed(1)}s
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             <div className="text-red-300 text-sm">

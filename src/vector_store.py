@@ -146,119 +146,66 @@ class PineconeVectorStore:
                     "matches": [],
                     "confidence": 0.0
                 }
-            
             print(f"🔍 DEBUG: Secondary text: '{secondary_text}'")
-            
+
             # Option 3: Dynamic threshold based on content length
             secondary_length = len(secondary_text)
-            if secondary_length < 100:  # Increased threshold for partial matches
-                adjusted_threshold = 0.5  # Much lower threshold for partial matches
+            if secondary_length < 100:  # Short content
+                adjusted_threshold = 0.5  # Lower threshold for short content
                 print(f"📏 DEBUG: Short secondary content ({secondary_length} chars), using lower threshold: {adjusted_threshold}")
-            else:
+            elif secondary_length > 500:  # Very long content
+                adjusted_threshold = 0.3  # Much lower threshold for very long content
+                print(f"📏 DEBUG: Very long secondary content ({secondary_length} chars), using much lower threshold: {adjusted_threshold}")
+            else:  # Medium content
                 adjusted_threshold = threshold  # Use original threshold
                 print(f"📏 DEBUG: Using original threshold: {adjusted_threshold}")
-            
 
-            # Use full secondary content for matching
-            search_text = secondary_text
-            print(f"🔍 DEBUG: Full text search: '{search_text}'")
-            
-            # Get embedding for search text
-            print(f"🔍 DEBUG: Generating embedding for: '{search_text}'")
-            search_embedding = self.get_embedding(search_text)
-            if not search_embedding:
-                print("❌ DEBUG: Failed to generate embedding for search text")
-                return {
-                    "success": False,
-                    "error": "Failed to generate embedding for search text",
-                    "matches": [],
-                    "confidence": 0.0
-                }
-            
-            print(f"🔍 DEBUG: Embedding generated successfully")
-            
-            # Search in Pinecone
-            if self.index_name not in self.client.list_indexes().names():
-                print(f"❌ DEBUG: Index '{self.index_name}' not found")
-                return {
-                    "success": False,
-                    "error": f"Index '{self.index_name}' not found",
-                    "matches": [],
-                    "confidence": 0.0
-                }
-            
-            self.index = self.client.Index(self.index_name)
-            print(f"🔍 DEBUG: Connected to Pinecone index: {self.index_name}")
-            
-            # Debug: Check if vectors are actually stored
-            try:
-                stats = self.index.describe_index_stats()
-                total_vector_count = stats.total_vector_count
-                print(f"🔍 DEBUG: Pinecone index has {total_vector_count} total vectors")
-            except Exception as e:
-                print(f"⚠️ DEBUG: Could not get index stats: {e}")
-            
-            # Search for similar content
-            print(f"🔍 DEBUG: Querying Pinecone with top_k=10, threshold={adjusted_threshold}")
-            results = self.index.query(
-                vector=search_embedding,
-                top_k=10,  # Get more results to filter by threshold
-                include_metadata=True
-            )
-            
-            # Filter results by adjusted threshold AND content overlap
-            matches = []
+            # --- NEW: Chunk the secondary text ---
+            secondary_chunks = self._chunk_secondary_text(secondary_transcription)
+            print(f"🔍 DEBUG: Chunked secondary into {len(secondary_chunks)} chunks")
+
+            all_matches = []
             total_confidence = 0.0
-            
-            # Access matches from the query results
-            query_matches = getattr(results, 'matches', [])
-            print(f"🔍 DEBUG: Pinecone returned {len(query_matches)} matches")
-            
-            for i, match in enumerate(query_matches):
-                confidence = getattr(match, 'score', 0.0)
-                metadata = getattr(match, 'metadata', {})
-                match_text = metadata.get("text", "")
-                match_text_short = match_text[:50]  # First 50 chars for logging
-                
-                print(f"🔍 DEBUG: Match {i+1}: score={confidence:.3f}, text='{match_text_short}...'")
-                
-                # Check both semantic similarity AND content overlap
-                has_semantic_similarity = confidence >= adjusted_threshold
-                has_content_overlap = self._check_content_overlap(secondary_text, match_text)
-                
-                print(f"🔍 DEBUG: Match {i+1} - Semantic similarity: {has_semantic_similarity}, Content overlap: {has_content_overlap}")
-                
-                if has_semantic_similarity and has_content_overlap:
-                    matches.append({
-                        "start_time": metadata.get("start_time", 0.0),
-                        "end_time": metadata.get("end_time", 0.0),
-                        "text": match_text,
-                        "confidence": confidence,
-                        "segment_index": metadata.get("segment_index", 0)
-                    })
-                    total_confidence += confidence
-                    print(f"✅ DEBUG: Match {i+1} above threshold AND has content overlap, added to results")
-                else:
-                    print(f"❌ DEBUG: Match {i+1} rejected - Semantic: {has_semantic_similarity}, Overlap: {has_content_overlap}")
-            
-            print(f"🔍 DEBUG: {len(matches)} matches above threshold AND with content overlap")
-            
+            for chunk_idx, chunk in enumerate(secondary_chunks):
+                chunk_text = chunk.get("text", "").strip()
+                if not chunk_text:
+                    continue
+                print(f"🔍 DEBUG: Searching chunk {chunk_idx+1}/{len(secondary_chunks)}: '{chunk_text[:50]}...'")
+                chunk_matches = self._search_single_chunk(chunk_text, adjusted_threshold)
+                for match in chunk_matches:
+                    confidence = getattr(match, 'score', 0.0)
+                    metadata = getattr(match, 'metadata', {})
+                    match_text = metadata.get("text", "")
+                    # Check both semantic similarity AND content overlap
+                    has_content_overlap = self._check_content_overlap(chunk_text, match_text)
+                    print(f"🔍 DEBUG: Chunk {chunk_idx+1} match - Confidence: {confidence:.3f}, Overlap: {has_content_overlap}")
+                    if has_content_overlap:
+                        all_matches.append({
+                            "start_time": metadata.get("start_time", 0.0),
+                            "end_time": metadata.get("end_time", 0.0),
+                            "text": match_text,
+                            "confidence": confidence,
+                            "segment_index": metadata.get("segment_index", 0)
+                        })
+                        total_confidence += confidence
+                        print(f"✅ DEBUG: Chunk {chunk_idx+1} match added to results")
+                    else:
+                        print(f"❌ DEBUG: Chunk {chunk_idx+1} match rejected (no content overlap)")
+
+            print(f"🔍 DEBUG: {len(all_matches)} total matches above threshold AND with content overlap from all chunks")
             # Merge overlapping matches
-            merged_matches = self._merge_overlapping_matches(matches)
+            merged_matches = self._merge_overlapping_matches(all_matches)
             print(f"🔍 DEBUG: After merging: {len(merged_matches)} unique matches")
-            
-            avg_confidence = total_confidence / len(matches) if matches else 0.0
-            
+            avg_confidence = total_confidence / len(all_matches) if all_matches else 0.0
             result = {
                 "success": True,
                 "matches": merged_matches,
                 "confidence": avg_confidence,
                 "found": len(merged_matches) > 0,
                 "total_matches": len(merged_matches),
-                "search_text": search_text,
+                "search_text": secondary_text,
                 "adjusted_threshold": adjusted_threshold
             }
-            
             print(f"🔍 DEBUG: Final result: {result}")
             return result
             
@@ -269,6 +216,33 @@ class PineconeVectorStore:
                 "matches": [],
                 "confidence": 0.0
             }
+    
+    def _search_single_chunk(self, chunk_text: str, adjusted_threshold: float) -> list:
+        """
+        Search a single secondary chunk embedding against Pinecone and return matches above threshold.
+        Args:
+            chunk_text: Text of the secondary chunk
+            adjusted_threshold: Confidence threshold for matches
+        Returns:
+            List of Pinecone match objects above threshold
+        """
+        search_embedding = self.get_embedding(chunk_text)
+        if not search_embedding:
+            print("❌ DEBUG: Failed to generate embedding for chunk text")
+            return []
+        if self.index_name not in self.client.list_indexes().names():
+            print(f"❌ DEBUG: Index '{self.index_name}' not found")
+            return []
+        self.index = self.client.Index(self.index_name)
+        results = self.index.query(
+            vector=search_embedding,
+            top_k=10,
+            include_metadata=True
+        )
+        query_matches = getattr(results, 'matches', [])
+        filtered = [m for m in query_matches if getattr(m, 'score', 0.0) >= adjusted_threshold]
+        print(f"🔍 DEBUG: _search_single_chunk found {len(filtered)} matches above threshold {adjusted_threshold}")
+        return filtered
     
     def _check_content_overlap(self, secondary_text: str, primary_text: str) -> bool:
         """
@@ -297,12 +271,30 @@ class PineconeVectorStore:
         overlap_words = secondary_words.intersection(primary_words)
         overlap_ratio = len(overlap_words) / len(secondary_words)
         
-        # Require at least 70% of secondary words to be found in primary
-        min_overlap_ratio = 0.7
+        # Dynamic overlap requirement based on content length
+        secondary_length = len(secondary_text)
+        if secondary_length < 100:  # Short content
+            min_overlap_ratio = 0.7  # 70% for short content
+        elif secondary_length > 500:  # Very long content
+            min_overlap_ratio = 0.3  # 30% for very long content
+        else:  # Medium content
+            min_overlap_ratio = 0.5  # 50% for medium content
         
-        print(f"🔍 DEBUG: Content overlap check - Secondary words: {len(secondary_words)}, Overlap: {len(overlap_words)}, Ratio: {overlap_ratio:.2f}")
+        print(f"🔍 DEBUG: Content overlap check - Secondary words: {len(secondary_words)}, Overlap: {len(overlap_words)}, Ratio: {overlap_ratio:.2f}, Required: {min_overlap_ratio:.2f}")
         
         return overlap_ratio >= min_overlap_ratio
+    
+    def _chunk_secondary_text(self, secondary_transcription: Dict[str, Any]) -> list:
+        """
+        Chunk the secondary transcription text using the same chunking logic as primary.
+        Args:
+            secondary_transcription: Transcription result from secondary file
+        Returns:
+            List of chunk dictionaries
+        """
+        from src.chunking_utils import ChunkingUtils
+        import config
+        return ChunkingUtils.chunk_transcription(secondary_transcription, config.CHUNKING_CONFIG)
     
     def _merge_overlapping_matches(self, matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
