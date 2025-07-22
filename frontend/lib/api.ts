@@ -59,6 +59,27 @@ export interface DownloadFormats {
   default_format: string
 }
 
+export interface ComparisonResponse {
+  success: boolean
+  message: string
+  found: boolean
+  timestamps: Array<{ start_time: number; end_time: number }>
+  confidence: number
+  primary_text: string
+  secondary_text: string
+  error?: string
+}
+
+export interface StorePrimaryResponse {
+  success: boolean
+  message: string
+  file_id: string
+  chunks_stored: number
+  text: string
+  segments: TranscriptionSegment[]
+  error?: string
+}
+
 // API Error Class
 export class APIError extends Error {
   constructor(
@@ -259,6 +280,77 @@ class APIService {
       )
     }
   }
+
+  // Compare Content
+  async compareContent(
+    primaryFilePath: string,
+    secondaryFilePath: string,
+    threshold: number = 0.95
+  ): Promise<ComparisonResponse> {
+    console.log('🔍 API: Starting content comparison...')
+    console.log('📁 Primary file path:', primaryFilePath)
+    console.log('📁 Secondary file path:', secondaryFilePath)
+    
+    try {
+      const result = await this.request<ComparisonResponse>('/api/compare-content', {
+        method: 'POST',
+        body: JSON.stringify({
+          primary_file_path: primaryFilePath,
+          secondary_file_path: secondaryFilePath,
+          threshold,
+        }),
+      })
+      
+      console.log('✅ API: Comparison successful:', result)
+      return result
+    } catch (error) {
+      console.error('💥 API: Comparison error:', error)
+      if (error instanceof APIError) {
+        throw error
+      }
+      throw new APIError(
+        error instanceof Error ? error.message : 'Comparison failed',
+        0,
+        error
+      )
+    }
+  }
+
+  // Store Primary Content
+  async storePrimaryContent(
+    filePath: string,
+    model: string = 'base',
+    language: string = 'auto'
+  ): Promise<StorePrimaryResponse> {
+    console.log('💾 API: Storing primary content...')
+    console.log('📁 File path:', filePath)
+    console.log('🤖 Model:', model)
+    console.log('🌍 Language:', language)
+
+    try {
+      const result = await this.request<StorePrimaryResponse>('/api/store-primary', {
+        method: 'POST',
+        body: JSON.stringify({
+          file_path: filePath,
+          model,
+          language,
+        }),
+      })
+
+      console.log('✅ API: Primary content stored:', result)
+      return result
+    } catch (error) {
+      console.error('💥 API: Store primary content error:', error)
+      if (error instanceof APIError) {
+        throw error
+      }
+      throw new APIError(
+        error instanceof Error ? error.message : 'Store primary content failed',
+        0,
+        error
+      )
+    }
+  }
 }
 
 // Export singleton instance
@@ -273,4 +365,6 @@ export type {
   SupportedFormats,
   AvailableModels,
   DownloadFormats,
+  ComparisonResponse,
+  StorePrimaryResponse,
 } 

@@ -1,0 +1,114 @@
+# Content Comparison Feature - Implementation Plan
+
+## Phase 1: Backend Foundation
+
+### 1. Add Comparison Endpoint to Existing Transcribe Router
+**Purpose**: Extend current `/api/transcribe` router to handle content comparison alongside existing transcription functionality.
+
+**Implementation**:
+- **New endpoint**: `/api/compare-content` accepting primary and secondary file paths
+- **Reuse existing infrastructure**: Leverage current file validation, audio processing, and transcription pipeline
+- **Maintain compatibility**: Existing `/api/transcribe` endpoint remains unchanged
+- **Unified processing**: Both endpoints use same Whisper transcriber and audio processor
+
+**Workflow**:
+1. Receive request with primary and secondary file paths
+2. Validate both files using existing validation logic
+3. Transcribe both files using current Whisper pipeline
+4. Store primary in Pinecone (clearing old embeddings)
+5. Query secondary against primary content
+6. Return comparison results with timestamps or "not found"
+
+### 2. Enhance Vector Store with Clear and Search Methods
+**Purpose**: Add two critical operations to existing Pinecone vector store for content comparison.
+
+**Clear Method**:
+- **Purpose**: Remove all existing embeddings when new primary content is uploaded
+- **Why needed**: Prevents incorrect matches from old content
+- **Implementation**: Delete all vectors from Pinecone index before storing new primary
+- **Safety**: Ensure atomic operation - clear only after successful new storage
+
+**Search Method**:
+- **Purpose**: Find secondary content within primary content using semantic similarity
+- **How it works**: 
+  - Convert secondary transcription chunks to embeddings
+  - Search these embeddings against stored primary chunks
+  - Return matching chunks with confidence scores and timestamps
+- **Threshold handling**: Only return matches above specified confidence (95%+)
+- **Timestamp preservation**: Maintain original start/end times for accurate location
+
+### 3. Add New Request/Response Models
+**Purpose**: Define clear data structures for comparison feature that integrate seamlessly with existing API patterns.
+
+**Request Models**:
+- **ComparisonRequest**: Contains primary/secondary file paths and comparison settings
+- **PrimaryContentRequest**: For setting new primary content (with clear operation)
+- **Threshold settings**: Configurable confidence levels for matching
+
+**Response Models**:
+- **ComparisonResponse**: Contains found status, timestamps, confidence scores
+- **Timestamp structure**: Start/end times for each matched segment
+- **Error handling**: Consistent error messages and status codes
+- **Metadata preservation**: File info, processing time, model used
+
+### 4. Test with Existing Test Framework
+**Purpose**: Leverage comprehensive testing infrastructure to validate new comparison functionality.
+
+**Test Categories**:
+- **Integration Tests**: Endpoint functionality, workflow validation, error scenarios
+- **Unit Tests**: Vector store methods, request/response models, threshold logic
+- **End-to-End Tests**: Complete workflow, edge cases, API compatibility
+
+## Phase 2: Frontend Integration
+
+### UI Layout Modifications
+- **Split upload area** into primary/secondary sections
+- **Add comparison button** next to transcribe button
+- **Display comparison results** in transcription panel
+- **Maintain existing styling** and color palette
+
+### New Action Buttons
+- **Preserve existing transcribe button**
+- **Add comparison button** with proper state management
+- **Disable comparison** until both files uploaded
+
+### Results Display
+- **Case 1**: "Content not found" message
+- **Case 2**: Show timestamps where secondary content appears in primary
+- **Future**: Highlighted transcription text
+
+## Technical Implementation Strategy
+
+### Comparison Strategy
+- **Chunk-based comparison** using existing Whisper segments
+- **Semantic similarity** via OpenAI embeddings
+- **Threshold-based matching** (95%+ confidence)
+- **Timestamp preservation** for accurate location
+
+### Storage Management
+- **Clear existing embeddings** when new primary is uploaded
+- **No storage** for secondary content (as requested)
+- **Metadata preservation** for future highlighting
+
+### Error Handling
+- **Graceful degradation** if comparison fails
+- **Clear messaging** for "not found" cases
+- **Validation** for file uploads
+
+## Key Benefits
+- **Minimal code duplication** - reuses existing transcription logic
+- **Consistent error handling** - same validation and processing patterns
+- **Easy testing** - leverages existing test infrastructure
+- **Backward compatibility** - existing endpoints unchanged
+- **Future-ready** - foundation supports planned highlighting features
+
+## Implementation Priority
+1. **Backend comparison logic** (core functionality)
+2. **API endpoints** (minimal changes to existing)
+3. **Frontend upload split** (UI changes)
+4. **Results display** (user feedback)
+5. **Future highlighting** (enhancement)
+description:
+globs:
+alwaysApply: false
+---

@@ -2,38 +2,43 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { GlassButton } from "@/components/glass-button"
-import { Zap } from "lucide-react"
+import { Zap, Search } from "lucide-react"
 import { useWhisperContext } from "@/contexts/whisper-context"
 
 export function ActionButtons() {
   const {
     uploadedFile,
+    primaryFile,
+    secondaryFile,
     transcription,
     isTranscribing,
-    transcribeFile
+    isComparing,
+    transcribeFile,
+    storePrimaryContent,
+    compareContent
   } = useWhisperContext()
 
-  // Debug loggingF
+  // Debug logging
   console.log('🔍 ActionButtons - Current state:', {
     uploadedFile: uploadedFile ? 'File uploaded' : 'No file',
+    primaryFile: primaryFile ? 'Primary file uploaded' : 'No primary file',
+    secondaryFile: secondaryFile ? 'Secondary file uploaded' : 'No secondary file',
     transcription: transcription ? 'Has transcription' : 'No transcription',
-    isTranscribing
+    isTranscribing,
+    isComparing
   })
   
-  // Force re-render when uploadedFile changes
+  // Force re-render when files change
   useEffect(() => {
-    console.log('🔄 ActionButtons: uploadedFile changed to:', uploadedFile)
-  }, [uploadedFile])
-
-  // Debug button state
-  console.log('🔍 Button disabled check:', { isTranscribing, uploadedFile: !!uploadedFile, disabled: isTranscribing })
+    console.log('🔄 ActionButtons: files changed to:', { primaryFile, secondaryFile })
+  }, [primaryFile, secondaryFile])
 
   const handleTranscribe = useCallback(async () => {
     console.log('🎯 Transcribe button clicked')
-    console.log('📁 Uploaded file state:', uploadedFile)
+    console.log('📁 Primary file state:', primaryFile)
     
-    if (!uploadedFile) {
-      console.error('❌ No file uploaded, cannot transcribe')
+    if (!primaryFile) {
+      console.error('❌ No primary file uploaded, cannot transcribe')
       return
     }
     
@@ -41,22 +46,61 @@ export function ActionButtons() {
     // Use default model 'base' - model selection is now handled in transcription component
     const result = await transcribeFile('base', 'auto')
     console.log('📝 Transcription result:', result)
-  }, [uploadedFile, transcribeFile])
+  }, [primaryFile, transcribeFile])
+
+  const handleCompare = useCallback(async () => {
+    console.log('🔍 Compare button clicked')
+    console.log('📁 Primary file state:', primaryFile)
+    console.log('📁 Secondary file state:', secondaryFile)
+    
+    if (!primaryFile || !secondaryFile) {
+      console.error('❌ Both primary and secondary files are required for comparison')
+      return
+    }
+    
+    console.log('🔄 Starting content comparison workflow...')
+    
+    // Step 1: Store primary content first
+    console.log('💾 Step 1: Storing primary content...')
+    const storeResult = await storePrimaryContent('base', 'auto')
+    if (!storeResult) {
+      console.error('❌ Failed to store primary content')
+      return
+    }
+    
+    // Step 2: Compare content
+    console.log('🔍 Step 2: Comparing content...')
+    const compareResult = await compareContent()
+    console.log('🔍 Comparison result:', compareResult)
+  }, [primaryFile, secondaryFile, storePrimaryContent, compareContent])
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Main Action Button */}
+      {/* Main Action Buttons */}
       <div className="flex gap-4 justify-center">
         <GlassButton
           onClick={handleTranscribe}
-          disabled={isTranscribing}
+          disabled={isTranscribing || !primaryFile}
           className="px-6 py-2 text-sm font-semibold bg-accent-orange/70 hover:bg-accent-orange/90 border-accent-orange/80 flex items-center gap-2 text-light-gray disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Zap className="h-4 w-4" />
-          {isTranscribing ? "Transcribing..." : "Transcribe"}
+          {isTranscribing ? "Transcribing..." : "Transcribe Primary"}
           {/* Show button state */}
           <span className="text-xs opacity-50">
-            ({uploadedFile ? 'File Ready' : 'No File'})
+            ({primaryFile ? 'Primary Ready' : 'No Primary File'})
+          </span>
+        </GlassButton>
+
+        <GlassButton
+          onClick={handleCompare}
+          disabled={isComparing || !primaryFile || !secondaryFile}
+          className="px-6 py-2 text-sm font-semibold bg-blue-500/70 hover:bg-blue-500/90 border-blue-500/80 flex items-center gap-2 text-light-gray disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Search className="h-4 w-4" />
+          {isComparing ? "Comparing..." : "Compare Content"}
+          {/* Show button state */}
+          <span className="text-xs opacity-50">
+            ({primaryFile && secondaryFile ? 'Both Ready' : 'Need Both Files'})
           </span>
         </GlassButton>
       </div>

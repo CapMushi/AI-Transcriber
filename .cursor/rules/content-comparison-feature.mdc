@@ -1,0 +1,73 @@
+# Content Comparison Feature - Original Requirements
+
+## Main Goal
+Ingest a primary video/audio as "knowledge base" and compare secondary video/audio content against it to find matching timestamps.
+
+## Core Requirements
+
+### Primary Video/Audio
+- Serves as the "knowledge base"
+- When uploaded, **delete existing embeddings** in Pinecone DB
+- Store transcription and embeddings for comparison
+- Display transcription in frontend
+
+### Secondary Video/Audio  
+- This is the query video/audio
+- **No storage** in Pinecone DB (transcription only)
+- Used to search against primary content
+- Not displayed in frontend 
+
+### Comparison Logic
+- Compare secondary content to primary content
+- Determine if secondary content is present within primary
+- **Two cases**:
+  1. **Not found**: Secondary content not found with 100% certainty → "video/audio not found"
+  2. **Found**: Return start and end timestamps where secondary appears in primary
+
+## Technical Constraints
+- **No AI chat or agent** functionality needed
+- **Minimal changes** to existing functionality
+- **Preserve existing transcription workflow**
+- **Threshold-based matching** (100% certainty requirement)
+- **Clear existing embeddings** when new primary is uploaded
+
+## Frontend Requirements
+
+### File Upload Sections
+- **Divide upload into 2 sections**:
+  1. Primary video/audio upload
+  2. Secondary video/audio upload
+- Maintain current color palette and aesthetics
+
+### Transcription Panel
+- **Only show transcription for primary video/audio**
+- **Preserve existing transcribe button**
+- **Add new comparison button** next to transcribe button
+- **Display comparison results** at bottom of transcription panel
+
+### Results Display
+- **Case 1**: "Content not found" message
+- **Case 2**: Show timestamps where secondary content appears in primary
+- **Future enhancement**: Highlight matching text in transcription
+
+## Example Workflow
+1. Upload primary video/audio → Clear old embeddings → Store new
+2. Upload secondary video/audio → Transcribe only
+3. Click "Compare Content" button
+4. Display results: timestamps or "not found" message
+
+## Future Enhancement (Not Required Now)
+- **Text highlighting**: Highlight secondary content within primary transcription
+- **Example**: "The brown fox [jumped over the fence] and ran crazy"
+- **Interactive timestamps**: Click to navigate to specific times
+
+## Key Principles
+- **Minimal disruption** to existing functionality
+- **Reuse existing infrastructure** (Whisper, Pinecone, API)
+- **Clear separation** between primary and secondary content
+- **Consistent UI/UX** with current design patterns
+- **No unnecessary improvements** - stick to core requirements
+description:
+globs:
+alwaysApply: false
+---

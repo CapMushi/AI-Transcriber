@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { GlassCard } from "@/components/glass-card"
 import { cn } from "@/lib/utils"
-import { Languages, Target, Clock, Zap, Download, Info } from "lucide-react"
+import { Languages, Target, Clock, Zap, Download, Info, Search } from "lucide-react"
 import { useWhisperContext } from "@/contexts/whisper-context"
 import { TranscriptionResponse } from "@/lib/api"
 import React from "react"
@@ -16,11 +16,19 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
     isTranscribing, 
     transcriptionProgress, 
     uploadedFile, 
+    primaryFile,
+    secondaryFile,
+    comparisonResult,
+    isComparing,
     downloadTranscription,
     availableModels,
     loadAvailableModels,
     transcribeFile
   } = useWhisperContext()
+
+  // Debug logging
+  console.log('📝 TranscriptionOutput - transcription:', transcription)
+  console.log('📝 TranscriptionOutput - comparisonResult:', comparisonResult)
   const [showDownloadPopup, setShowDownloadPopup] = useState(false)
   const [showInfoPopup, setShowInfoPopup] = useState(false)
   const [selectedModel, setSelectedModel] = useState('base')
@@ -127,6 +135,42 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
           Transcription
         </h2>
         
+        {/* Model Selection Dropdown - Always visible */}
+        <div className="absolute top-4 right-4 z-10 flex gap-2 items-center">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-light-gray/70 whitespace-nowrap">Model:</label>
+            <select
+              value={selectedModel}
+              onChange={(e) => handleModelChange(e.target.value)}
+              disabled={isTranscribing}
+              className="bg-dark-secondary/95 backdrop-blur-md border border-dark-secondary/30 rounded-lg px-3 py-2 text-xs text-light-gray focus:border-accent-orange/50 focus:outline-none min-w-[90px] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg appearance-none"
+              style={{
+                borderRadius: '8px',
+                backgroundImage: `url("data:image/svg+xml,%3csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m1 1 4 4 4-4' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center',
+                backgroundSize: '10px 6px',
+                paddingRight: '24px'
+              }}
+            >
+              {availableModels?.available_models?.map((model) => (
+                <option key={model} value={model} className="bg-dark-secondary/95 text-light-gray rounded">
+                  {model.charAt(0).toUpperCase() + model.slice(1)}
+                </option>
+              )) || (
+                // Fallback options when models are not loaded yet
+                <>
+                  <option value="tiny" className="bg-dark-secondary/95 text-light-gray rounded">Tiny</option>
+                  <option value="base" className="bg-dark-secondary/95 text-light-gray rounded">Base</option>
+                  <option value="small" className="bg-dark-secondary/95 text-light-gray rounded">Small</option>
+                  <option value="medium" className="bg-dark-secondary/95 text-light-gray rounded">Medium</option>
+                  <option value="large" className="bg-dark-secondary/95 text-light-gray rounded">Large</option>
+                </>
+              )}
+            </select>
+          </div>
+        </div>
+        
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="text-center text-light-gray/60">
             <Languages className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -158,11 +202,20 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
               paddingRight: '24px'
             }}
           >
-            {availableModels?.available_models.map((model) => (
+            {availableModels?.available_models?.map((model) => (
               <option key={model} value={model} className="bg-dark-secondary/95 text-light-gray rounded">
                 {model.charAt(0).toUpperCase() + model.slice(1)}
               </option>
-            ))}
+            )) || (
+              // Fallback options when models are not loaded yet
+              <>
+                <option value="tiny" className="bg-dark-secondary/95 text-light-gray rounded">Tiny</option>
+                <option value="base" className="bg-dark-secondary/95 text-light-gray rounded">Base</option>
+                <option value="small" className="bg-dark-secondary/95 text-light-gray rounded">Small</option>
+                <option value="medium" className="bg-dark-secondary/95 text-light-gray rounded">Medium</option>
+                <option value="large" className="bg-dark-secondary/95 text-light-gray rounded">Large</option>
+              </>
+            )}
           </select>
         </div>
 
@@ -236,15 +289,15 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
               <div className="space-y-2 text-xs text-light-gray">
                 <div className="flex items-center gap-2">
             <Languages className="h-3 w-3 text-accent-orange" />
-            <span>Language: {transcription.language}</span>
+            <span>Language: {transcription.language || 'Unknown'}</span>
           </div>
                 <div className="flex items-center gap-2">
             <Target className="h-3 w-3 text-accent-orange" />
-            <span>Confidence: {transcription.confidence.toFixed(1)}%</span>
+            <span>Confidence: {(transcription.confidence || 0).toFixed(1)}%</span>
           </div>
                 <div className="flex items-center gap-2">
             <Clock className="h-3 w-3 text-accent-orange" />
-            <span>Time: {transcription.processing_time.toFixed(1)}s</span>
+            <span>Time: {(transcription.processing_time || 0).toFixed(1)}s</span>
           </div>
                 {transcription.model_used && (
                   <div className="flex items-center gap-2">
@@ -274,7 +327,7 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
         <TooltipProvider>
           <div className="text-light-gray text-sm leading-relaxed">
-            {transcription.segments.map((segment, index) => (
+            {transcription.segments?.map((segment, index) => (
               <Tooltip key={index}>
                 <TooltipTrigger asChild>
                   <span
@@ -299,10 +352,75 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
                   </div>
                 </TooltipContent>
               </Tooltip>
-            ))}
+            )) || (
+              transcription.text ? (
+                <div className="text-light-gray/80 leading-relaxed">
+                  {transcription.text}
+                </div>
+              ) : (
+                <div className="text-light-gray/60 text-center py-4">
+                  <p>No transcription segments available</p>
+                </div>
+              )
+            )}
           </div>
         </TooltipProvider>
       </div>
+
+      {/* Comparison Results */}
+      {comparisonResult && (
+        <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Search className="h-5 w-5 text-blue-400" />
+            <h3 className="text-lg font-semibold text-blue-300">Comparison Results</h3>
+          </div>
+          
+          {comparisonResult.found ? (
+            <div className="space-y-3">
+              <div className="text-green-300 text-sm">
+                ✅ Content found in primary file
+              </div>
+              <div className="text-light-gray text-sm">
+                <p><span className="text-accent-orange">Confidence:</span> {(comparisonResult.confidence * 100).toFixed(1)}%</p>
+                <p><span className="text-accent-orange">Matches found:</span> {comparisonResult.timestamps?.length || 0}</p>
+              </div>
+              
+              {comparisonResult.timestamps && comparisonResult.timestamps.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-accent-orange text-sm font-semibold">Timestamps:</p>
+                  <div className="space-y-1">
+                    {comparisonResult.timestamps.map((timestamp: any, index: number) => (
+                      <div key={index} className="text-light-gray text-xs bg-dark-secondary/30 p-2 rounded">
+                        <span className="text-accent-orange">Match {index + 1}:</span> {timestamp.start_time.toFixed(1)}s - {timestamp.end_time.toFixed(1)}s
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-red-300 text-sm">
+              ❌ Secondary content not found in primary file with 100% certainty
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Comparison Loading */}
+      {isComparing && (
+        <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Search className="h-5 w-5 text-blue-400 animate-pulse" />
+            <h3 className="text-lg font-semibold text-blue-300">Comparing Content...</h3>
+          </div>
+          <div className="text-light-gray text-sm">
+            <p>Analyzing secondary content against primary file...</p>
+            <div className="w-full bg-dark-secondary/30 rounded-full h-2 mt-2">
+              <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{ width: '60%' }} />
+            </div>
+          </div>
+        </div>
+      )}
     </GlassCard>
   )
 }

@@ -5,7 +5,6 @@ import { FileUploadArea } from "@/components/file-upload-area"
 import { TranscriptionOutput } from "@/components/transcription-output"
 import { PlaybackControls } from "@/components/playback-controls"
 import { ActionButtons } from "@/components/action-buttons"
-import { LoadingIndicator } from "@/components/loading-indicator"
 import { AudioWaveBackground } from "@/components/audio-wave-background"
 import { ErrorDisplay } from "@/components/error-display"
 import { DebugPanel } from "@/components/debug-panel"
@@ -34,7 +33,7 @@ function HomeContent() {
       <main className="flex-1 flex flex-col px-4 py-4 max-w-7xl mx-auto w-full min-h-0 relative z-10">
         {/* Two-panel layout - flex-1 to take available space */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 mb-4 min-h-0">
-          {/* Left Panel - Upload Area */}
+          {/* Left Panel - Upload Area (now split into primary/secondary) */}
           <div className="flex flex-col min-h-0">
             <FileUploadArea />
           </div>
@@ -51,8 +50,6 @@ function HomeContent() {
           <ActionButtons />
         </div>
       </main>
-
-      <LoadingIndicator isLoading={isTranscribing} />
       
       {/* Debug Panel - Remove this in production */}
       <DebugPanel />

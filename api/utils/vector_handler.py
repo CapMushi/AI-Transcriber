@@ -98,7 +98,7 @@ class VectorHandler:
         Args:
             query: Search query
             top_k: Number of results to return
-            filter_metadata: Metadata filters
+            filter_metadata: Optional metadata filter
             
         Returns:
             Dictionary with search results
@@ -112,17 +112,127 @@ class VectorHandler:
             
             return {
                 "success": True,
-                "query": query,
                 "results": results,
                 "count": len(results)
             }
-            
         except Exception as e:
             return {
                 "success": False,
-                "error": f"Search failed: {str(e)}",
-                "query": query,
-                "results": []
+                "error": f"Search failed: {str(e)}"
+            }
+    
+    async def store_primary_content(self,
+                                   file_id: str,
+                                   transcription_data: Dict[str, Any],
+                                   file_metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Store primary content in Pinecone (clearing existing embeddings first)
+        
+        Args:
+            file_id: Unique identifier for the file
+            transcription_data: Transcription result from Whisper
+            file_metadata: File information metadata
+            
+        Returns:
+            Dictionary with storage result
+        """
+        try:
+            # Validate that we have transcription data
+            if not transcription_data.get("success", False):
+                return {
+                    "success": False,
+                    "error": "No successful transcription data to store"
+                }
+            
+            # Validate that we have segments
+            segments = transcription_data.get("segments", [])
+            if not segments:
+                return {
+                    "success": False,
+                    "error": "No segments found in transcription data"
+                }
+            
+            # Clear existing embeddings first
+            print("🔄 VectorHandler: Clearing existing embeddings...")
+            clear_success = self.vector_store.clear_existing_embeddings()
+            print(f"🔄 VectorHandler: Clear result: {clear_success}")
+            
+            if not clear_success:
+                print("❌ VectorHandler: Failed to clear existing embeddings")
+                return {
+                    "success": False,
+                    "error": "Failed to clear existing embeddings"
+                }
+            
+            # Store primary content chunks in Pinecone
+            success = self.vector_store.store_transcription_chunks(
+                file_id=file_id,
+                transcription_data=transcription_data,
+                file_metadata=file_metadata
+            )
+            
+            if success:
+                return {
+                    "success": True,
+                    "message": f"Stored primary content for file {file_id} (cleared existing embeddings)",
+                    "file_id": file_id,
+                    "chunks_stored": len(segments),
+                    "embeddings_cleared": True
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Failed to store primary content in Pinecone"
+                }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Primary content storage error: {str(e)}"
+            }
+    
+    async def search_content_matches(self,
+                                   secondary_transcription: Dict[str, Any],
+                                   threshold: float = 0.95) -> Dict[str, Any]:
+        """
+        Search for secondary content matches in primary content
+        
+        Args:
+            secondary_transcription: Transcription result from secondary file
+            threshold: Confidence threshold for matches (0.0 to 1.0)
+            
+        Returns:
+            Dictionary with search results including matches and timestamps
+        """
+        print(f"🔍 DEBUG: VectorHandler.search_content_matches called with threshold={threshold}")
+        
+        try:
+            # Validate that we have secondary transcription data
+            if not secondary_transcription.get("success", False):
+                print("❌ DEBUG: No successful secondary transcription data")
+                return {
+                    "success": False,
+                    "error": "No successful secondary transcription data"
+                }
+            
+            print(f"🔍 DEBUG: Secondary transcription: {secondary_transcription.get('text', '')[:100]}...")
+            
+            # Search for content matches
+            print(f"🔍 DEBUG: Calling vector_store.search_content_matches")
+            search_result = self.vector_store.search_content_matches(
+                secondary_transcription=secondary_transcription,
+                threshold=threshold
+            )
+            
+            print(f"🔍 DEBUG: VectorHandler search result: {search_result}")
+            return search_result
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Content search error: {str(e)}",
+                "matches": [],
+                "confidence": 0.0
             }
     
     def get_storage_status(self) -> Dict[str, Any]:
