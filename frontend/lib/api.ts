@@ -78,6 +78,7 @@ export interface StorePrimaryResponse {
   text: string
   segments: TranscriptionSegment[]
   error?: string
+  storage_in_progress?: boolean  // NEW: Indicates if storage is happening in background
 }
 
 // API Error Class

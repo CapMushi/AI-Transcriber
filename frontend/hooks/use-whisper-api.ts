@@ -28,6 +28,10 @@ export interface UseWhisperAPIState {
   isTranscribing: boolean
   transcriptionProgress: number
   
+  // Storage state
+  isStoring: boolean  // NEW: Track storage progress
+  storageProgress: number  // NEW: Storage progress percentage
+  
   // Comparison state
   comparisonResult: any | null
   isComparing: boolean
@@ -87,6 +91,9 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
   const [transcription, setTranscription] = useState<TranscriptionResponse | null>(null)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [transcriptionProgress, setTranscriptionProgress] = useState(0)
+  
+  const [isStoring, setIsStoring] = useState(false) // NEW: Track storage progress
+  const [storageProgress, setStorageProgress] = useState(0) // NEW: Storage progress percentage
   
   const [comparisonResult, setComparisonResult] = useState<any | null>(null)
   const [isComparing, setIsComparing] = useState(false)
@@ -277,7 +284,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     }
     
     try {
-      setIsTranscribing(true)  // Reuse transcribing state for storage
+      setIsTranscribing(true)  // Start transcription state
       setError(null)
       
       console.log('🔄 Calling store primary API...')
@@ -291,12 +298,12 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       console.log('📥 Store primary response:', response)
       
       if (response.success) {
-        console.log('✅ Primary content stored successfully:', response)
+        console.log('✅ Transcription completed successfully:', response)
         
-        // Set the transcription from storage response
+        // Set the transcription from storage response immediately
         const transcriptionData = {
           success: true,
-          message: "Primary content stored and transcribed",
+          message: response.message || "Transcription completed",
           text: response.text,
           segments: response.segments,
           language: "auto",
@@ -304,10 +311,38 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
           processing_time: 0.0,
           model_used: model,
           file_path: primaryFile?.file_path || "",
-          error: null
+          error: undefined
         }
         console.log('📝 Transcription data to set:', transcriptionData)
         setTranscription(transcriptionData)
+        
+        // Check if storage is happening in background
+        if (response.storage_in_progress) {
+          console.log('🔄 Storage is happening in background, showing progress...')
+          setIsStoring(true)
+          setStorageProgress(0)
+          
+          // Simulate storage progress (since we can't track real progress)
+          const progressInterval = setInterval(() => {
+            setStorageProgress(prev => {
+              if (prev >= 90) {
+                clearInterval(progressInterval)
+                return 90
+              }
+              return prev + 10
+            })
+          }, 500)
+          
+          // Stop storage progress after a reasonable time
+          setTimeout(() => {
+            clearInterval(progressInterval)
+            setStorageProgress(100)
+            setTimeout(() => {
+              setIsStoring(false)
+              setStorageProgress(0)
+            }, 1000)
+          }, 5000) // Assume storage takes ~5 seconds
+        }
         
         return true
       } else {
@@ -580,6 +615,8 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     transcription,
     isTranscribing,
     transcriptionProgress,
+    isStoring, // NEW: Expose storage progress state
+    storageProgress, // NEW: Expose storage progress state
     comparisonResult,
     isComparing,
     supportedFormats,

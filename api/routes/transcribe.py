@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 import sys
 import os
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 # Add the parent directory to the path to import backend modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -87,6 +89,45 @@ class StorePrimaryResponse(BaseModel):
     text: str = ""
     segments: List[Dict[str, Any]] = []
     error: str = None
+    storage_in_progress: bool = False  # NEW: Indicates if storage is happening in background
+
+
+# Background storage function
+async def _store_primary_content_background(
+    file_id: str,
+    transcription_data: Dict[str, Any],
+    file_metadata: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Background function to store primary content in Pinecone
+    
+    Args:
+        file_id: Unique identifier for the file
+        transcription_data: Transcription result from Whisper
+        file_metadata: File information metadata
+        
+    Returns:
+        Dictionary with storage result
+    """
+    try:
+        print(f"🔄 Background storage started for file {file_id}")
+        
+        # Store primary content (clearing existing embeddings)
+        storage_result = await vector_handler.store_primary_content(
+            file_id=file_id,
+            transcription_data=transcription_data,
+            file_metadata=file_metadata
+        )
+        
+        print(f"🔄 Background storage completed for file {file_id}: {storage_result}")
+        return storage_result
+        
+    except Exception as e:
+        print(f"❌ Background storage failed for file {file_id}: {e}")
+        return {
+            "success": False,
+            "error": f"Background storage failed: {str(e)}"
+        }
 
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
@@ -207,12 +248,13 @@ async def transcribe_file(request: TranscriptionRequest):
 async def store_primary_content(request: StorePrimaryRequest):
     """
     Store primary content in Pinecone (clearing existing embeddings first)
+    Returns transcription immediately, then stores in background
     
     Args:
         request: StorePrimaryRequest with file path and options
         
     Returns:
-        StorePrimaryResponse with storage results
+        StorePrimaryResponse with transcription results and storage status
     """
     try:
         # Validate file exists
@@ -256,13 +298,13 @@ async def store_primary_content(request: StorePrimaryRequest):
                 error=result.get("error", "Unknown error")
             )
         
-        # Store primary content in Pinecone (clearing existing embeddings)
+        # Return transcription results immediately
+        file_id = vector_handler.generate_file_id()
+        
+        # Start background storage operation
         try:
             # Get file information for metadata
             file_info = audio_processor.get_file_info(request.file_path)
-            
-            # Generate unique file ID
-            file_id = vector_handler.generate_file_id()
             
             # Prepare file metadata
             file_metadata = vector_handler.prepare_file_metadata(
@@ -270,35 +312,37 @@ async def store_primary_content(request: StorePrimaryRequest):
                 file_info=file_info
             )
             
-            # Store primary content (clearing existing embeddings)
-            storage_result = await vector_handler.store_primary_content(
-                file_id=file_id,
-                transcription_data=result,
-                file_metadata=file_metadata
+            # Start background storage task
+            asyncio.create_task(
+                _store_primary_content_background(
+                    file_id=file_id,
+                    transcription_data=result,
+                    file_metadata=file_metadata
+                )
             )
             
-            if not storage_result.get("success", False):
-                return StorePrimaryResponse(
-                    success=False,
-                    message="Failed to store primary content",
-                    error=storage_result.get("error", "Unknown error")
-                )
-            
-            # Return success response
+            # Return success response with transcription immediately
             return StorePrimaryResponse(
                 success=True,
-                message="Primary content stored successfully",
+                message="Transcription completed. Storage in progress...",
                 file_id=file_id,
-                chunks_stored=storage_result.get("chunks_stored", 0),
+                chunks_stored=0,  # Will be updated in background
                 text=result.get("text", ""),
-                segments=result.get("segments", [])
+                segments=result.get("segments", []),
+                storage_in_progress=True  # Indicates background storage is happening
             )
                 
         except Exception as e:
+            # Even if background storage fails, return transcription results
             return StorePrimaryResponse(
-                success=False,
-                message="Primary content storage failed",
-                error=str(e)
+                success=True,
+                message="Transcription completed. Storage failed.",
+                file_id=file_id,
+                chunks_stored=0,
+                text=result.get("text", ""),
+                segments=result.get("segments", []),
+                storage_in_progress=False,
+                error=f"Storage failed: {str(e)}"
             )
         
     except Exception as e:

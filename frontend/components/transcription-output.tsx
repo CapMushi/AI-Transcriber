@@ -15,6 +15,8 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
   const { 
     isTranscribing, 
     transcriptionProgress, 
+    isStoring,
+    storageProgress,
     uploadedFile, 
     primaryFile,
     secondaryFile,
@@ -366,6 +368,31 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
           </div>
         </TooltipProvider>
       </div>
+
+      {/* Storage Progress Indicator */}
+      {isStoring && (
+        <div className="mt-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1 rounded-full bg-green-500/20 border border-green-500/30">
+              <Search className="h-4 w-4 text-green-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-green-300">Storing Content...</h3>
+          </div>
+          <div className="text-light-gray text-sm">
+            <p>Storing transcription chunks in Pinecone...</p>
+            <div className="w-full bg-dark-secondary/30 rounded-full h-2 mt-2">
+              <div 
+                className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${storageProgress}%` }} 
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs text-light-gray mt-1">
+              <span>Progress</span>
+              <span>{storageProgress}%</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Comparison Results */}
       {comparisonResult && (
