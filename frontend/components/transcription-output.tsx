@@ -6,6 +6,7 @@ import { useWhisperContext } from "@/contexts/whisper-context"
 import { TranscriptionResponse } from "@/lib/api"
 import React from "react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAudioPlayer } from "@/hooks/use-audio-player"
 
 interface TranscriptionOutputProps {
   transcription?: TranscriptionResponse | null
@@ -25,8 +26,11 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
     downloadTranscription,
     availableModels,
     loadAvailableModels,
-    transcribeFile
+    transcribeFile,
+    audioUrl
   } = useWhisperContext()
+  
+  const { jumpToTimestamp } = useAudioPlayer(audioUrl)
 
   // Debug logging
   console.log('📝 TranscriptionOutput - transcription:', transcription)
@@ -340,9 +344,12 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
       </div>
 
       {/* Two-column layout: Transcription and Timestamp Sidebar */}
-      <div className="flex gap-4 h-full mt-4">
+      <div className="flex gap-4 h-full mt-4 min-h-0">
         {/* Left Column: Transcription Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-w-0" style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255, 87, 34, 0.3) rgba(45, 64, 89, 0.2)'
+        }}>
           <TooltipProvider>
             <div className="text-light-gray text-sm leading-relaxed">
               {transcription.segments?.map((segment, index) => {
@@ -367,15 +374,23 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
                       side="top"
                       sideOffset={8}
                     >
-                      <div className="flex items-center gap-2 text-xs">
-                        <Clock className="h-3 w-3 text-accent-orange" />
-                        <span>
-                          {segment.start.toFixed(1)}s - {segment.end.toFixed(1)}s
-                        </span>
-                        {isHighlighted && (
-                          <span className="text-accent-orange ml-2">✓ Match</span>
-                        )}
-                      </div>
+                                          <div className="flex items-center gap-2 text-xs">
+                      <Clock className="h-3 w-3 text-accent-orange" />
+                      <span>
+                        {segment.start.toFixed(1)}s - {segment.end.toFixed(1)}s
+                      </span>
+                      {isHighlighted && (
+                        <span className="text-accent-orange ml-2">✓ Match</span>
+                      )}
+                      {audioUrl && (
+                        <button
+                          onClick={() => jumpToTimestamp(segment.start)}
+                          className="text-accent-orange hover:text-accent-orange/80 text-xs"
+                        >
+                          Jump
+                        </button>
+                      )}
+                    </div>
                     </TooltipContent>
                   </Tooltip>
                 )
@@ -401,37 +416,35 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
 
         {/* Right Column: Timestamp Sidebar */}
         {comparisonResult && comparisonResult.found && comparisonResult.timestamps && comparisonResult.timestamps.length > 0 && (
-          <div className="w-64 bg-dark-secondary/20 border border-dark-secondary/30 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="w-48 flex-shrink-0 bg-dark-secondary/20 border border-dark-secondary/30 rounded-lg p-3 overflow-y-auto" style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255, 87, 34, 0.3) rgba(45, 64, 89, 0.2)'
+          }}>
+            <div className="flex items-center gap-2 mb-3">
               <Search className="h-4 w-4 text-accent-orange" />
               <h3 className="text-sm font-semibold text-light-gray">Timestamps</h3>
             </div>
             
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="space-y-2">
               {comparisonResult.timestamps.map((timestamp: any, index: number) => (
-                <div key={index} className="bg-dark-secondary/30 border border-dark-secondary/50 rounded p-3 hover:bg-dark-secondary/40 transition-all duration-200">
-                  <div className="flex items-center justify-between mb-2">
+                <div key={index} className="bg-dark-secondary/30 border border-dark-secondary/50 rounded p-2 hover:bg-dark-secondary/40 transition-all duration-200">
+                  <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-accent-orange font-medium">Match {index + 1}</span>
                     <span className="text-xs text-light-gray/70">{(timestamp.end_time - timestamp.start_time).toFixed(1)}s</span>
                   </div>
                   <div className="text-xs text-light-gray">
-                    <div className="flex items-center gap-1 mb-1">
+                    <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3 text-accent-orange" />
                       <span className="text-accent-orange font-medium">
                         {timestamp.start_time.toFixed(1)}s - {timestamp.end_time.toFixed(1)}s
                       </span>
-                    </div>
-                    <div className="text-light-gray/80 text-xs leading-relaxed">
-                      {transcription.segments?.find(seg => 
-                        seg.start <= timestamp.start_time && seg.end >= timestamp.end_time
-                      )?.text || "Content found in this time range"}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
             
-            <div className="mt-4 pt-3 border-t border-dark-secondary/30">
+            <div className="mt-3 pt-2 border-t border-dark-secondary/30">
               <div className="text-xs text-light-gray/70">
                 <div className="flex items-center justify-between mb-1">
                   <span>Confidence:</span>

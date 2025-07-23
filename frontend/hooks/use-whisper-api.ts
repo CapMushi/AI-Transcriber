@@ -23,6 +23,9 @@ export interface UseWhisperAPIState {
   isUploading: boolean
   uploadProgress: number
   
+  // Audio playback state
+  audioUrl: string | null
+  
   // Transcription state
   transcription: TranscriptionResponse | null
   isTranscribing: boolean
@@ -88,6 +91,9 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   
+  // Audio playback state
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  
   const [transcription, setTranscription] = useState<TranscriptionResponse | null>(null)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [transcriptionProgress, setTranscriptionProgress] = useState(0)
@@ -143,6 +149,12 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
         console.log('✅ Upload successful, file info:', response.file_info)
         console.log('🔄 Setting uploadedFile state...')
         setUploadedFile(response.file_info)
+        
+        // Create audio URL for playback
+        const audioUrl = URL.createObjectURL(file)
+        setAudioUrl(audioUrl)
+        console.log('✅ Audio URL created for playback')
+        
         console.log('✅ uploadedFile state set to:', response.file_info)
         return true
       } else {
@@ -192,6 +204,12 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       if (response.success && response.file_info) {
         console.log('✅ Primary file uploaded successfully:', response.file_info)
         setPrimaryFile(response.file_info)
+        
+        // Create audio URL for playback
+        const audioUrl = URL.createObjectURL(file)
+        setAudioUrl(audioUrl)
+        console.log('✅ Audio URL created for primary file playback')
+        
         return true
       } else {
         console.error('❌ Primary file upload failed:', response.error)
@@ -261,7 +279,12 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
   const clearPrimaryFile = useCallback(() => {
     setPrimaryFile(null)
     setError(null)
-  }, [])
+    // Cleanup audio URL
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl)
+      setAudioUrl(null)
+    }
+  }, [audioUrl])
 
   // Clear secondary file
   const clearSecondaryFile = useCallback(() => {
@@ -420,7 +443,12 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     setUploadedFile(null)
     setTranscription(null)
     setError(null)
-  }, [])
+    // Cleanup audio URL
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl)
+      setAudioUrl(null)
+    }
+  }, [audioUrl])
 
   // Transcribe file
   const transcribeFile = useCallback(async (
@@ -612,6 +640,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     secondaryFile,
     isUploading,
     uploadProgress,
+    audioUrl,
     transcription,
     isTranscribing,
     transcriptionProgress,
