@@ -1,0 +1,87 @@
+# Whisper AI Comparison Workflow Timing Analysis
+
+## 📊 Complete Comparison Workflow Operations & Timings
+
+### **🔍 PHASE 1: PRIMARY STORAGE (180.802s)**
+
+| Operation | Time | Percentage |
+|-----------|------|------------|
+| **Embedding Generation** | 69.863s | 38.6% |
+| **Pinecone Upsert** | 66.285s | 36.7% |
+| **Transcription** | 31.825s | 17.6% |
+| **Indexing Wait** | 9.576s | 5.3% |
+| **Clear Embeddings** | 3.239s | 1.8% |
+| **Chunking** | 0.013s | 0.0% |
+| **Audio Preparation** | 0.001s | 0.0% |
+| **Validation** | 0.000s | 0.0% |
+
+### **🔍 PHASE 2: SECONDARY COMPARISON (13.742s)**
+
+| Operation | Time | Percentage |
+|-----------|------|------------|
+| **Transcription** | 13.742s | 100.0% |
+| **Validation** | 0.000s | 0.0% |
+| **Audio Preparation** | 0.000s | 0.0% |
+| **Vector Search** | 0.000s | 0.0% |
+
+### **📈 SUMMARY BREAKDOWN**
+
+| Phase | Total Time | Percentage |
+|-------|------------|------------|
+| **Primary Storage** | 180.802s | 92.9% |
+| **Secondary Comparison** | 13.742s | 7.1% |
+| **Total Phases** | 194.544s | 100% |
+| **Overhead/Other** | 103.206s | - |
+| **TOTAL WORKFLOW** | **297.750s** | - |
+
+## 🎯 Key Performance Insights
+
+### **Slowest Operations (Bottlenecks):**
+1. **Embedding Generation** (69.863s) - 23.5% of total time
+2. **Pinecone Upsert** (66.285s) - 22.3% of total time  
+3. **Primary Transcription** (31.825s) - 10.7% of total time
+4. **Secondary Transcription** (13.742s) - 4.6% of total time
+5. **Indexing Wait** (9.576s) - 3.2% of total time
+
+### **Fastest Operations:**
+- Validation: ~0.001s
+- Audio Preparation: ~0.001s
+- Chunking: ~0.013s
+- Vector Search: ~0.000s (instantaneous)
+
+### **Performance Characteristics:**
+- **Primary Storage is the bottleneck** (92.9% of total time)
+- **Embedding generation** is the biggest bottleneck (69.863s)
+- **Pinecone storage** is the second biggest bottleneck (66.285s)
+- Together they account for **45.8%** of the total workflow time
+- **Secondary Comparison is very fast** (7.1% of total time)
+- Vector search and matching are nearly instantaneous
+
+## 📁 Related Files
+
+The timing analysis was performed using:
+- [test_comprehensive_comparison_timing.py](mdc:test_comprehensive_comparison_timing.py) - Main timing script
+- [src/vector_store.py](mdc:src/vector_store.py) - Vector storage operations
+- [src/transcriber.py](mdc:src/transcriber.py) - Transcription operations
+- [src/audio_processor.py](mdc:src/audio_processor.py) - Audio processing
+
+## 🚀 Optimization Recommendations
+
+1. **Embedding Generation**: Consider batch processing or parallel embedding generation
+2. **Pinecone Upsert**: Optimize batch sizes and reduce network latency
+3. **Transcription**: Consider using smaller models for faster processing
+4. **Indexing Wait**: Implement async indexing to reduce wait times
+
+## 📊 Processing Details
+
+- **Primary**: 6,353 chars, 84 segments → 84 chunks
+- **Secondary**: 2,940 chars, 41 segments → 41 search chunks
+- **Average chunk size**: 74.6 characters
+- **Successful embeddings**: 84/84 (100%)
+- **Average embedding time**: 0.832s per chunk
+- **Vector search matches**: 42 initial → 5 unique after merging
+- **Average confidence**: 88.5%
+description:
+globs:
+alwaysApply: false
+---

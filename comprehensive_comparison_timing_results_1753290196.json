@@ -1,0 +1,92 @@
+{
+  "primary_file": "testing files/hp.mp3",
+  "secondary_file": "testing files/hs.mp3",
+  "model": "base",
+  "threshold": 0.7,
+  "phases": {
+    "primary_storage": {
+      "validation": {
+        "success": true,
+        "time": 0.0007703304290771484,
+        "error": null
+      },
+      "audio_preparation": {
+        "success": true,
+        "time": 0.0005230903625488281,
+        "audio_path": "testing files\\hp.mp3",
+        "error": null
+      },
+      "transcription": {
+        "success": true,
+        "time": 43.750200271606445,
+        "text_length": 6353,
+        "segments_count": 84,
+        "model_used": "base",
+        "language": "en",
+        "confidence": 85.60062537078508,
+        "error": null
+      },
+      "clear_embeddings": {
+        "success": true,
+        "time": 3.8793601989746094,
+        "error": null
+      },
+      "chunking": {
+        "success": true,
+        "time": 0.0,
+        "chunks_count": 0,
+        "total_chars": 0,
+        "avg_chunk_size": 0,
+        "min_chunk_size": 0,
+        "max_chunk_size": 0
+      },
+      "embedding_generation": {
+        "success": false,
+        "time": 0.0,
+        "successful_embeddings": 0,
+        "failed_embeddings": 0,
+        "total_chunks": 0,
+        "avg_embedding_time": 0
+      },
+      "pinecone_upsert": {
+        "success": false,
+        "time": 0.0,
+        "error": "No valid vectors to store"
+      },
+      "indexing_wait": {
+        "success": true,
+        "time": 0,
+        "indexing_success": false
+      }
+    },
+    "secondary_comparison": {
+      "validation": {
+        "success": true,
+        "time": 0.0005066394805908203,
+        "error": null
+      },
+      "audio_preparation": {
+        "success": true,
+        "time": 0.0005640983581542969,
+        "audio_path": "testing files\\hs.mp3",
+        "error": null
+      },
+      "transcription": {
+        "success": true,
+        "time": 19.74064016342163,
+        "text_length": 2940,
+        "segments_count": 41,
+        "model_used": "base",
+        "language": "en",
+        "confidence": 85.61572900762974,
+        "error": null
+      },
+      "vector_search": {
+        "success": false,
+        "total_time": 0.0,
+        "error": "No text found in secondary transcription"
+      }
+    }
+  },
+  "total_time": 67.37739706039429
+}
