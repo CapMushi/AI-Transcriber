@@ -252,4 +252,127 @@ class AudioProcessor:
             return True, str(file_path)
             
         except Exception as e:
-            return False, f"Error preparing audio: {str(e)}" 
+            return False, f"Error preparing audio: {str(e)}"
+    
+    def prepare_audio_for_whisper_fast(self, file_path: Union[str, Path]) -> Tuple[bool, str]:
+        """
+        Prepare audio file for Whisper transcription with optimized settings for speed
+        
+        Args:
+            file_path: Path to the audio/video file
+            
+        Returns:
+            Tuple of (success, prepared_audio_path)
+        """
+        try:
+            file_path = Path(file_path)
+            
+            # Validate file
+            is_valid, error_msg = self.validate_file(file_path)
+            if not is_valid:
+                return False, error_msg
+            
+            # If it's a video file, extract audio with optimized settings
+            if file_path.suffix.lower() in self.supported_video_formats:
+                success, result = self.extract_audio_from_video_fast(file_path)
+                if not success:
+                    return False, result
+                file_path = Path(result)
+            
+            # For audio files, convert to optimized format for faster processing
+            if file_path.suffix.lower() in self.supported_audio_formats:
+                success, result = self.convert_audio_fast(file_path)
+                if not success:
+                    return False, result
+                file_path = Path(result)
+            
+            return True, str(file_path)
+            
+        except Exception as e:
+            return False, f"Error preparing audio: {str(e)}"
+    
+    def extract_audio_from_video_fast(self, video_path: Union[str, Path], output_path: Optional[Union[str, Path]] = None) -> Tuple[bool, str]:
+        """
+        Extract audio from video file with optimized settings for speed
+        
+        Args:
+            video_path: Path to the video file
+            output_path: Path for the extracted audio (optional)
+            
+        Returns:
+            Tuple of (success, message or output_path)
+        """
+        try:
+            video_path = Path(video_path)
+            
+            # Validate video file
+            is_valid, error_msg = self.validate_file(video_path)
+            if not is_valid:
+                return False, error_msg
+            
+            # Generate output path if not provided
+            if output_path is None:
+                output_path = video_path.parent / f"{video_path.stem}_audio_fast.wav"
+            else:
+                output_path = Path(output_path)
+            
+            # Extract audio using optimized ffmpeg settings for speed
+            result = subprocess.run([
+                self.ffmpeg_path, '-i', str(video_path), 
+                '-acodec', 'pcm_s16le',  # Faster codec
+                '-ac', '1',              # Mono audio
+                '-ar', '16000',          # Lower sample rate
+                '-f', 'wav',             # WAV format for faster processing
+                '-y', str(output_path)   # Overwrite output
+            ], capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                raise Exception(f"FFmpeg error: {result.stderr}")
+            
+            return True, str(output_path)
+            
+        except Exception as e:
+            return False, f"Error extracting audio: {str(e)}"
+    
+    def convert_audio_fast(self, audio_path: Union[str, Path], output_path: Optional[Union[str, Path]] = None) -> Tuple[bool, str]:
+        """
+        Convert audio file to optimized format for faster Whisper processing
+        
+        Args:
+            audio_path: Path to the audio file
+            output_path: Path for the converted audio (optional)
+            
+        Returns:
+            Tuple of (success, message or output_path)
+        """
+        try:
+            audio_path = Path(audio_path)
+            
+            # Validate audio file
+            is_valid, error_msg = self.validate_file(audio_path)
+            if not is_valid:
+                return False, error_msg
+            
+            # Generate output path if not provided
+            if output_path is None:
+                output_path = audio_path.parent / f"{audio_path.stem}_fast.wav"
+            else:
+                output_path = Path(output_path)
+            
+            # Convert audio using optimized settings for speed
+            result = subprocess.run([
+                self.ffmpeg_path, '-i', str(audio_path), 
+                '-acodec', 'pcm_s16le',  # Faster codec
+                '-ac', '1',              # Mono audio
+                '-ar', '16000',          # Lower sample rate
+                '-f', 'wav',             # WAV format for faster processing
+                '-y', str(output_path)   # Overwrite output
+            ], capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                raise Exception(f"FFmpeg error: {result.stderr}")
+            
+            return True, str(output_path)
+            
+        except Exception as e:
+            return False, f"Error converting audio: {str(e)}" 

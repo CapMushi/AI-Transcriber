@@ -8,7 +8,8 @@ import time
 import sys
 import os
 import asyncio
-from typing import Dict, Any, List
+import concurrent.futures
+from typing import Dict, Any, List, Tuple
 import json
 
 # Add the project root to the path
@@ -51,21 +52,22 @@ class ComprehensiveComparisonTimingAnalyzer:
         return result
     
     def measure_audio_preparation(self, file_path: str, file_type: str) -> Dict[str, Any]:
-        """Measure audio preparation timing"""
+        """Measure audio preparation timing using optimized preprocessing"""
         print(f"🎵 Measuring {file_type} audio preparation: {file_path}")
         
         start_time = time.time()
-        success, audio_path = self.audio_processor.prepare_audio_for_whisper(file_path)
+        success, audio_path = self.audio_processor.prepare_audio_for_whisper_fast(file_path)
         preparation_time = time.time() - start_time
         
         result = {
             "success": success,
             "time": preparation_time,
             "audio_path": audio_path if success else None,
-            "error": audio_path if not success else None
+            "error": audio_path if not success else None,
+            "optimized": True
         }
         
-        print(f"✅ {file_type} audio preparation: {preparation_time:.3f}s")
+        print(f"✅ {file_type} optimized audio preparation: {preparation_time:.3f}s")
         return result
     
     def measure_transcription(self, audio_path: str, file_type: str, model: str = "base") -> Dict[str, Any]:
@@ -96,6 +98,89 @@ class ComprehensiveComparisonTimingAnalyzer:
         
         print(f"✅ {file_type} transcription: {transcription_time:.3f}s ({timing_result['segments_count']} segments)")
         return timing_result
+    
+    def measure_transcription_parallel(self, files: List[Tuple[str, str]], model: str = "base") -> Dict[str, Any]:
+        """
+        Measure parallel transcription timing for multiple files
+        
+        Args:
+            files: List of tuples (file_path, file_type)
+            model: Model to use for transcription
+            
+        Returns:
+            Dictionary with parallel transcription results
+        """
+        print(f"🎤 Measuring parallel transcription for {len(files)} files with model: {model}")
+        
+        start_time = time.time()
+        results = {}
+        
+        try:
+            # Use ThreadPoolExecutor for parallel processing
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(files)) as executor:
+                # Submit transcription tasks
+                future_to_file = {}
+                for file_path, file_type in files:
+                    # Prepare audio first using optimized preprocessing
+                    success, audio_path = self.audio_processor.prepare_audio_for_whisper_fast(file_path)
+                    if not success:
+                        results[file_type] = {
+                            "success": False,
+                            "error": f"Audio preparation failed: {audio_path}"
+                        }
+                        continue
+                    
+                    # Submit transcription task
+                    future = executor.submit(
+                        self.transcriber.transcribe_audio,
+                        audio_path=audio_path,
+                        language=None,
+                        task="transcribe",
+                        model=model
+                    )
+                    future_to_file[future] = (file_type, file_path)
+                
+                # Collect results
+                for future in concurrent.futures.as_completed(future_to_file):
+                    file_type, file_path = future_to_file[future]
+                    try:
+                        result = future.result()
+                        results[file_type] = result
+                    except Exception as e:
+                        results[file_type] = {
+                            "success": False,
+                            "error": f"Transcription failed: {str(e)}"
+                        }
+            
+            total_time = time.time() - start_time
+            
+            # Calculate summary statistics
+            successful_transcriptions = sum(1 for r in results.values() if r.get("success", False))
+            total_segments = sum(len(r.get("segments", [])) for r in results.values() if r.get("success", False))
+            total_text_length = sum(len(r.get("text", "")) for r in results.values() if r.get("success", False))
+            
+            parallel_result = {
+                "success": successful_transcriptions == len(files),
+                "time": total_time,
+                "files_processed": len(files),
+                "successful_transcriptions": successful_transcriptions,
+                "total_segments": total_segments,
+                "total_text_length": total_text_length,
+                "model_used": model,
+                "individual_results": results
+            }
+            
+            print(f"✅ Parallel transcription: {total_time:.3f}s ({successful_transcriptions}/{len(files)} successful)")
+            return parallel_result
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "time": time.time() - start_time,
+                "error": f"Parallel transcription failed: {str(e)}",
+                "files_processed": len(files),
+                "successful_transcriptions": 0
+            }
     
     def measure_clear_embeddings(self) -> Dict[str, Any]:
         """Measure clear embeddings timing"""
@@ -141,31 +226,23 @@ class ComprehensiveComparisonTimingAnalyzer:
         return result
     
     def measure_embedding_generation(self, chunks: List[Dict[str, Any]], file_type: str) -> Dict[str, Any]:
-        """Measure embedding generation timing"""
-        print(f"🧠 Measuring {file_type} embedding generation for {len(chunks)} chunks")
+        """Measure embedding generation timing using batch processing"""
+        print(f"🧠 Measuring {file_type} batch embedding generation for {len(chunks)} chunks")
         
         start_time = time.time()
-        successful_embeddings = 0
-        failed_embeddings = 0
-        embedding_times = []
         
-        for i, chunk in enumerate(chunks):
-            chunk_text = chunk.get("text", "")
-            if not chunk_text:
-                continue
-            
-            embedding_start = time.time()
-            embedding = self.vector_store.get_embedding(chunk_text)
-            embedding_time = time.time() - embedding_start
-            embedding_times.append(embedding_time)
-            
-            if embedding:
-                successful_embeddings += 1
-            else:
-                failed_embeddings += 1
+        # Get all chunk texts for batch embedding
+        chunk_texts = [chunk.get("text", "") for chunk in chunks if chunk.get("text", "")]
+        
+        # Generate embeddings in batch
+        embeddings = self.vector_store.get_embeddings_batch(chunk_texts)
         
         total_time = time.time() - start_time
-        avg_embedding_time = sum(embedding_times) / len(embedding_times) if embedding_times else 0
+        successful_embeddings = sum(1 for emb in embeddings if emb is not None)
+        failed_embeddings = len(embeddings) - successful_embeddings
+        
+        # Calculate average time per embedding (total time / number of embeddings)
+        avg_embedding_time = total_time / len(embeddings) if embeddings else 0
         
         result = {
             "success": successful_embeddings > 0,
@@ -173,10 +250,11 @@ class ComprehensiveComparisonTimingAnalyzer:
             "successful_embeddings": successful_embeddings,
             "failed_embeddings": failed_embeddings,
             "total_chunks": len(chunks),
-            "avg_embedding_time": avg_embedding_time
+            "avg_embedding_time": avg_embedding_time,
+            "batch_size": len(chunk_texts)
         }
         
-        print(f"✅ {file_type} embedding generation: {total_time:.3f}s ({successful_embeddings} successful)")
+        print(f"✅ {file_type} batch embedding generation: {total_time:.3f}s ({successful_embeddings} successful)")
         return result
     
     def measure_pinecone_upsert(self, chunks: List[Dict[str, Any]], file_type: str) -> Dict[str, Any]:
@@ -185,19 +263,18 @@ class ComprehensiveComparisonTimingAnalyzer:
         
         start_time = time.time()
         
-        # Prepare vectors for storage
+        # Prepare vectors for storage using batch embedding
         vectors_to_upsert = []
-        embedding_times = []
         
-        for chunk in chunks:
-            # Generate embedding
-            embedding_start = time.time()
-            embedding = self.vector_store.get_embedding(chunk.get("text", ""))
-            embedding_time = time.time() - embedding_start
-            embedding_times.append(embedding_time)
-            
+        # Get all chunk texts for batch embedding
+        chunk_texts = [chunk.get("text", "") for chunk in chunks if chunk.get("text", "")]
+        
+        # Generate embeddings in batch
+        embeddings = self.vector_store.get_embeddings_batch(chunk_texts)
+        
+        # Create vector records
+        for chunk, embedding in zip(chunks, embeddings):
             if embedding:
-                # Create vector record
                 vector_record = {
                     "id": chunk["id"],
                     "values": embedding,
@@ -240,7 +317,7 @@ class ComprehensiveComparisonTimingAnalyzer:
                 "batches_processed": len(batch_times),
                 "total_upsert_time": total_upsert_time,
                 "avg_batch_time": sum(batch_times) / len(batch_times) if batch_times else 0,
-                "avg_embedding_time": sum(embedding_times) / len(embedding_times) if embedding_times else 0
+                "batch_embedding_used": True
             }
         else:
             return {
@@ -471,6 +548,109 @@ class ComprehensiveComparisonTimingAnalyzer:
         print(f"\n🎉 Complete workflow completed in {workflow_results['total_time']:.3f}s")
         return workflow_results
     
+    async def measure_complete_comparison_workflow_parallel(self, primary_file: str, secondary_file: str, model: str = "base", threshold: float = 0.7) -> Dict[str, Any]:
+        """Measure the complete comparison workflow timing with parallel transcription"""
+        print(f"🚀 Starting parallel comparison workflow timing")
+        print(f"📁 Primary file: {primary_file}")
+        print(f"📁 Secondary file: {secondary_file}")
+        print(f"🤖 Model: {model}")
+        print(f"🎯 Threshold: {threshold}")
+        
+        workflow_start = time.time()
+        workflow_results = {
+            "primary_file": primary_file,
+            "secondary_file": secondary_file,
+            "model": model,
+            "threshold": threshold,
+            "phases": {
+                "parallel_transcription": {},
+                "primary_storage": {},
+                "secondary_comparison": {}
+            },
+            "total_time": 0.0,
+            "parallel_processing": True
+        }
+        
+        # ===== PHASE 1: PARALLEL TRANSCRIPTION =====
+        print(f"\n🎤 PHASE 1: PARALLEL TRANSCRIPTION")
+        print("=" * 50)
+        
+        # Validate both files first
+        primary_valid = self.measure_file_validation(primary_file, "primary")
+        secondary_valid = self.measure_file_validation(secondary_file, "secondary")
+        
+        if not primary_valid["success"] or not secondary_valid["success"]:
+            workflow_results["total_time"] = time.time() - workflow_start
+            return workflow_results
+        
+        # Prepare audio for both files
+        primary_audio = self.measure_audio_preparation(primary_file, "primary")
+        secondary_audio = self.measure_audio_preparation(secondary_file, "secondary")
+        
+        if not primary_audio["success"] or not secondary_audio["success"]:
+            workflow_results["total_time"] = time.time() - workflow_start
+            return workflow_results
+        
+        # Parallel transcription
+        files_to_transcribe = [
+            (primary_audio["audio_path"], "primary"),
+            (secondary_audio["audio_path"], "secondary")
+        ]
+        
+        parallel_result = self.measure_transcription_parallel(files_to_transcribe, model)
+        workflow_results["phases"]["parallel_transcription"] = parallel_result
+        
+        if not parallel_result["success"]:
+            workflow_results["total_time"] = time.time() - workflow_start
+            return workflow_results
+        
+        # Extract individual results
+        individual_results = parallel_result["individual_results"]
+        primary_transcription = individual_results["primary"]
+        secondary_transcription = individual_results["secondary"]
+        
+        # ===== PHASE 2: PRIMARY STORAGE =====
+        print(f"\n📦 PHASE 2: PRIMARY STORAGE")
+        print("=" * 50)
+        
+        # Clear existing embeddings
+        workflow_results["phases"]["primary_storage"] = {}
+        workflow_results["phases"]["primary_storage"]["clear_embeddings"] = self.measure_clear_embeddings()
+        
+        # Primary chunking
+        primary_transcription_data = {
+            "text": primary_transcription["text"],
+            "segments": primary_transcription["segments"]
+        }
+        workflow_results["phases"]["primary_storage"]["chunking"] = self.measure_chunking(primary_transcription_data, "primary")
+        
+        # Primary embedding generation
+        primary_chunks = self.vector_store._generate_chunks(primary_transcription_data, {})
+        workflow_results["phases"]["primary_storage"]["embedding_generation"] = self.measure_embedding_generation(primary_chunks, "primary")
+        
+        # Primary Pinecone upsert
+        workflow_results["phases"]["primary_storage"]["pinecone_upsert"] = self.measure_pinecone_upsert(primary_chunks, "primary")
+        
+        # Primary indexing wait
+        workflow_results["phases"]["primary_storage"]["indexing_wait"] = self.measure_indexing_wait(primary_chunks, "primary")
+        
+        # ===== PHASE 3: SECONDARY COMPARISON =====
+        print(f"\n🔍 PHASE 3: SECONDARY COMPARISON")
+        print("=" * 50)
+        
+        # Vector search (comparison)
+        secondary_transcription_data = {
+            "text": secondary_transcription["text"],
+            "segments": secondary_transcription["segments"]
+        }
+        workflow_results["phases"]["secondary_comparison"] = {}
+        workflow_results["phases"]["secondary_comparison"]["vector_search"] = self.measure_vector_search(secondary_transcription_data, threshold)
+        
+        workflow_results["total_time"] = time.time() - workflow_start
+        
+        print(f"\n🎉 Parallel workflow completed in {workflow_results['total_time']:.3f}s")
+        return workflow_results
+    
     def print_comprehensive_timing_summary(self, results: Dict[str, Any]):
         """Print a comprehensive timing summary"""
         print("\n" + "="*80)
@@ -482,6 +662,12 @@ class ComprehensiveComparisonTimingAnalyzer:
         print(f"🤖 Model: {results['model']}")
         print(f"🎯 Threshold: {results['threshold']}")
         print(f"⏱️  Total time: {results['total_time']:.3f}s")
+        
+        # Show optimizations used
+        if results.get('parallel_processing', False):
+            print("🚀 Optimizations: Batch Embedding + Model Caching + Audio Optimization + Parallel Processing")
+        else:
+            print("🚀 Optimizations: Batch Embedding + Model Caching + Audio Optimization")
         print()
         
         # Calculate phase breakdown
@@ -591,9 +777,18 @@ async def main():
         print(f"❌ Secondary file not found: {secondary_file}")
         sys.exit(1)
     
-    # Run timing analysis
+    # Run timing analysis with all optimizations
     analyzer = ComprehensiveComparisonTimingAnalyzer()
-    results = await analyzer.measure_complete_comparison_workflow(primary_file, secondary_file, model, threshold)
+    
+    # Use parallel workflow for better performance
+    print("🚀 Using optimized workflow with all improvements:")
+    print("   ✅ Batch Embedding Generation")
+    print("   ✅ Model Caching")
+    print("   ✅ Audio Preprocessing Optimization")
+    print("   ✅ Parallel Processing")
+    print()
+    
+    results = await analyzer.measure_complete_comparison_workflow_parallel(primary_file, secondary_file, model, threshold)
     
     # Print summary
     analyzer.print_comprehensive_timing_summary(results)

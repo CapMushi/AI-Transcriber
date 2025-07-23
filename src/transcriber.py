@@ -13,6 +13,9 @@ import config
 class WhisperTranscriber:
     """Handles Whisper model loading and transcription"""
     
+    # Class-level model cache to avoid reloading
+    _model_cache = {}
+    
     def __init__(self, model_name: str = None):
         """
         Initialize the Whisper transcriber
@@ -30,16 +33,25 @@ class WhisperTranscriber:
     
     def load_model(self) -> bool:
         """
-        Load the Whisper model
+        Load the Whisper model with caching
         
         Returns:
             True if model loaded successfully, False otherwise
         """
         try:
+            # Check if model is already cached
+            if self.model_name in self._model_cache:
+                print(f"Using cached model: {self.model_name}")
+                self.model = self._model_cache[self.model_name]
+                self.model_loaded = True
+                return True
+            
+            # Load model and cache it
             print(f"Loading Whisper model: {self.model_name}")
             self.model = whisper.load_model(self.model_name)
+            self._model_cache[self.model_name] = self.model
             self.model_loaded = True
-            print(f"Model {self.model_name} loaded successfully")
+            print(f"Model {self.model_name} loaded and cached successfully")
             return True
         except Exception as e:
             print(f"Error loading model {self.model_name}: {str(e)}")

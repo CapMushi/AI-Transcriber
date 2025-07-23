@@ -4,11 +4,12 @@ Transcription endpoint for Whisper AI API
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import sys
 import os
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import time
 
 # Add the parent directory to the path to import backend modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -35,6 +36,7 @@ class TranscriptionRequest(BaseModel):
     model: str = "base"
     language: str = "auto"
     task: str = "transcribe"
+    use_parallel: bool = False  # NEW: Enable parallel processing
 
 
 class TranscriptionResponse(BaseModel):
@@ -50,6 +52,7 @@ class TranscriptionResponse(BaseModel):
     file_path: str = ""
     error: str = None
     storage_status: Dict[str, Any] = None
+    parallel_used: bool = False  # NEW: Indicates if parallel processing was used
 
 
 class ComparisonRequest(BaseModel):
@@ -59,6 +62,7 @@ class ComparisonRequest(BaseModel):
     threshold: float = 0.7  # Lowered from 0.95 to 0.7 for testing
     model: str = "base"
     language: str = "auto"
+    use_parallel: bool = False  # NEW: Enable parallel processing
 
 
 class ComparisonResponse(BaseModel):
@@ -71,6 +75,7 @@ class ComparisonResponse(BaseModel):
     primary_text: str = ""
     secondary_text: str = ""
     error: str = None
+    parallel_used: bool = False  # NEW: Indicates if parallel processing was used
 
 
 class StorePrimaryRequest(BaseModel):
@@ -78,6 +83,7 @@ class StorePrimaryRequest(BaseModel):
     file_path: str
     model: str = "base"
     language: str = "auto"
+    use_parallel: bool = False  # NEW: Enable parallel processing
 
 
 class StorePrimaryResponse(BaseModel):
@@ -90,6 +96,67 @@ class StorePrimaryResponse(BaseModel):
     segments: List[Dict[str, Any]] = []
     error: str = None
     storage_in_progress: bool = False  # NEW: Indicates if storage is happening in background
+    parallel_used: bool = False  # NEW: Indicates if parallel processing was used
+
+
+def _transcribe_single_file(file_path: str, model: str, language: str, task: str) -> Dict[str, Any]:
+    """Helper function for single file transcription (for parallel processing)"""
+    try:
+        # Validate file
+        is_valid, error_msg = audio_processor.validate_file(file_path)
+        if not is_valid:
+            return {"success": False, "error": error_msg}
+        
+        # Prepare audio
+        success, prepared_audio = audio_processor.prepare_audio_for_whisper_fast(file_path)
+        if not success:
+            return {"success": False, "error": prepared_audio}
+        
+        # Transcribe
+        transcription_result = transcriber.transcribe_audio(
+            prepared_audio, 
+            language=language, 
+            task=task
+        )
+        
+        if not transcription_result["success"]:
+            return transcription_result
+        
+        return {
+            "success": True,
+            "text": transcription_result["text"],
+            "segments": transcription_result["segments"],
+            "language": transcription_result["language"],
+            "confidence": transcription_result["confidence"],
+            "processing_time": transcription_result["processing_time"],
+            "model_used": model,
+            "file_path": file_path
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+async def _transcribe_parallel(files: List[Tuple[str, str, str, str]], max_workers: int = 2) -> List[Dict[str, Any]]:
+    """Transcribe multiple files in parallel"""
+    results = []
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all transcription tasks
+        future_to_file = {
+            executor.submit(_transcribe_single_file, file_path, model, language, task): (file_path, model, language, task)
+            for file_path, model, language, task in files
+        }
+        
+        # Collect results as they complete
+        for future in asyncio.as_completed([future_to_file[f] for f in future_to_file.keys()]):
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                results.append({"success": False, "error": str(e)})
+    
+    return results
 
 
 # Background storage function
@@ -142,6 +209,82 @@ async def transcribe_file(request: TranscriptionRequest):
         TranscriptionResponse with transcription results
     """
     try:
+        # Use parallel processing if requested
+        if request.use_parallel:
+            # For single file, parallel processing is not beneficial
+            # But we'll use the parallel infrastructure for consistency
+            files = [(request.file_path, request.model, request.language, request.task)]
+            results = await _transcribe_parallel(files, max_workers=1)
+            
+            if not results or not results[0]["success"]:
+                error_msg = results[0].get("error", "Unknown error") if results else "No results"
+                return TranscriptionResponse(
+                    success=False,
+                    message=f"Parallel transcription failed: {error_msg}",
+                    error=error_msg,
+                    parallel_used=True
+                )
+            
+            result = results[0]
+            
+            # PHASE 2: Store chunks in Pinecone (non-blocking)
+            storage_status = None
+            try:
+                # Get file information for metadata
+                file_info = audio_processor.get_file_info(request.file_path)
+                
+                # Generate unique file ID
+                file_id = vector_handler.generate_file_id()
+                
+                # Prepare file metadata
+                file_metadata = vector_handler.prepare_file_metadata(
+                    original_filename=os.path.basename(request.file_path),
+                    file_info=file_info
+                )
+                
+                # Store chunks in Pinecone (non-blocking)
+                storage_result = await vector_handler.store_transcription_chunks(
+                    file_id=file_id,
+                    transcription_data=result,
+                    file_metadata=file_metadata
+                )
+                
+                storage_status = {
+                    "success": storage_result.get("success", False),
+                    "message": storage_result.get("message", ""),
+                    "file_id": file_id,
+                    "chunks_stored": storage_result.get("chunks_stored", 0)
+                }
+                
+                if storage_result.get("success", False):
+                    print(f"✅ Stored {storage_result.get('chunks_stored', 0)} chunks in Pinecone for file {file_id}")
+                else:
+                    print(f"⚠️ Pinecone storage failed: {storage_result.get('error', 'Unknown error')}")
+                    
+            except Exception as e:
+                print(f"⚠️ Pinecone storage error: {e}")
+                storage_status = {
+                    "success": False,
+                    "message": f"Storage error: {str(e)}",
+                    "file_id": None,
+                    "chunks_stored": 0
+                }
+            
+            return TranscriptionResponse(
+                success=True,
+                message="Parallel transcription completed successfully",
+                text=result["text"],
+                segments=result["segments"],
+                language=result["language"],
+                confidence=result["confidence"],
+                processing_time=result["processing_time"],
+                model_used=result["model_used"],
+                file_path=result["file_path"],
+                storage_status=storage_status,
+                parallel_used=True
+            )
+        
+        # Standard sequential processing
         # Validate file exists
         if not os.path.exists(request.file_path):
             raise HTTPException(status_code=404, detail="File not found")
@@ -155,8 +298,8 @@ async def transcribe_file(request: TranscriptionRequest):
                 error=error_msg
             )
         
-        # Prepare audio for transcription using existing backend
-        success, audio_path = audio_processor.prepare_audio_for_whisper(request.file_path)
+        # Prepare audio for transcription using optimized backend
+        success, audio_path = audio_processor.prepare_audio_for_whisper_fast(request.file_path)
         if not success:
             return TranscriptionResponse(
                 success=False,
@@ -233,7 +376,8 @@ async def transcribe_file(request: TranscriptionRequest):
             processing_time=result.get("processing_time", 0.0),
             model_used=result.get("model_used", ""),
             file_path=result.get("file_path", ""),
-            storage_status=storage_status
+            storage_status=storage_status,
+            parallel_used=False
         )
         
     except Exception as e:
@@ -274,8 +418,8 @@ async def store_primary_content(request: StorePrimaryRequest):
                 error=error_msg
             )
         
-        # Prepare audio for transcription using existing backend
-        success, audio_path = audio_processor.prepare_audio_for_whisper(request.file_path)
+        # Prepare audio for transcription using optimized backend
+        success, audio_path = audio_processor.prepare_audio_for_whisper_fast(request.file_path)
         if not success:
             return StorePrimaryResponse(
                 success=False,
@@ -365,6 +509,86 @@ async def compare_content(request: ComparisonRequest):
         ComparisonResponse with comparison results and timestamps
     """
     try:
+        # Use parallel processing if requested
+        if request.use_parallel:
+            # For comparison, we only need to transcribe the secondary file
+            # Parallel processing is not beneficial for single file
+            # But we'll use the parallel infrastructure for consistency
+            files = [(request.secondary_file_path, request.model, request.language, "transcribe")]
+            results = await _transcribe_parallel(files, max_workers=1)
+            
+            if not results or not results[0]["success"]:
+                error_msg = results[0].get("error", "Unknown error") if results else "No results"
+                return ComparisonResponse(
+                    success=False,
+                    message=f"Parallel secondary transcription failed: {error_msg}",
+                    error=error_msg,
+                    parallel_used=True
+                )
+            
+            secondary_result = results[0]
+            
+            # Search for secondary content in already-stored primary content
+            try:
+                print(f"🔍 DEBUG: API calling search_content_matches_optimized with threshold={request.threshold}")
+                print(f"🔍 DEBUG: Secondary result: {secondary_result.get('text', '')[:100]}...")
+                
+                search_result = await vector_handler.search_content_matches_optimized(
+                    secondary_transcription=secondary_result,
+                    threshold=request.threshold
+                )
+                
+                print(f"🔍 DEBUG: API search result: {search_result}")
+                
+                if search_result.get("success", False):
+                    matches = search_result.get("matches", [])
+                    if matches:
+                        # Content found - return timestamps
+                        # Extract only timestamp fields from matches
+                        timestamp_data = []
+                        for match in matches:
+                            timestamp_data.append({
+                                "start_time": match.get("start_time", 0.0),
+                                "end_time": match.get("end_time", 0.0)
+                            })
+                        
+                        return ComparisonResponse(
+                            success=True,
+                            message="Content found in primary (parallel processing)",
+                            found=True,
+                            timestamps=timestamp_data,
+                            confidence=search_result.get("confidence", 0.0),
+                            primary_text="",  # No primary text since it's already stored
+                            secondary_text=secondary_result.get("text", ""),
+                            parallel_used=True
+                        )
+                    else:
+                        # Content not found
+                        return ComparisonResponse(
+                            success=True,
+                            message="Secondary content not found in primary with specified threshold (parallel processing)",
+                            found=False,
+                            primary_text="",  # No primary text since it's already stored
+                            secondary_text=secondary_result.get("text", ""),
+                            parallel_used=True
+                        )
+                else:
+                    return ComparisonResponse(
+                        success=False,
+                        message="Content search failed",
+                        error=search_result.get("error", "Unknown error"),
+                        parallel_used=True
+                    )
+                    
+            except Exception as e:
+                return ComparisonResponse(
+                    success=False,
+                    message="Content comparison failed",
+                    error=str(e),
+                    parallel_used=True
+                )
+        
+        # Standard sequential processing
         # Validate secondary file exists
         if not os.path.exists(request.secondary_file_path):
             return ComparisonResponse(
@@ -382,8 +606,8 @@ async def compare_content(request: ComparisonRequest):
                 error=secondary_error
             )
         
-        # Prepare audio for secondary file using existing backend
-        secondary_success, secondary_audio_path = audio_processor.prepare_audio_for_whisper(request.secondary_file_path)
+        # Prepare audio for secondary file using optimized backend
+        secondary_success, secondary_audio_path = audio_processor.prepare_audio_for_whisper_fast(request.secondary_file_path)
         if not secondary_success:
             return ComparisonResponse(
                 success=False,
@@ -408,10 +632,10 @@ async def compare_content(request: ComparisonRequest):
         
         # Search for secondary content in already-stored primary content
         try:
-            print(f"🔍 DEBUG: API calling search_content_matches with threshold={request.threshold}")
+            print(f"🔍 DEBUG: API calling search_content_matches_optimized with threshold={request.threshold}")
             print(f"🔍 DEBUG: Secondary result: {secondary_result.get('text', '')[:100]}...")
             
-            search_result = await vector_handler.search_content_matches(
+            search_result = await vector_handler.search_content_matches_optimized(
                 secondary_transcription=secondary_result,
                 threshold=request.threshold
             )
@@ -437,7 +661,8 @@ async def compare_content(request: ComparisonRequest):
                         timestamps=timestamp_data,
                         confidence=search_result.get("confidence", 0.0),
                         primary_text="",  # No primary text since it's already stored
-                        secondary_text=secondary_result.get("text", "")
+                        secondary_text=secondary_result.get("text", ""),
+                        parallel_used=False
                     )
                 else:
                     # Content not found
@@ -446,20 +671,23 @@ async def compare_content(request: ComparisonRequest):
                         message="Secondary content not found in primary with specified threshold",
                         found=False,
                         primary_text="",  # No primary text since it's already stored
-                        secondary_text=secondary_result.get("text", "")
+                        secondary_text=secondary_result.get("text", ""),
+                        parallel_used=False
                     )
             else:
                 return ComparisonResponse(
                     success=False,
                     message="Content search failed",
-                    error=search_result.get("error", "Unknown error")
+                    error=search_result.get("error", "Unknown error"),
+                    parallel_used=False
                 )
                 
         except Exception as e:
             return ComparisonResponse(
                 success=False,
                 message="Content comparison failed",
-                error=str(e)
+                error=str(e),
+                parallel_used=False
             )
         
     except Exception as e:
@@ -494,8 +722,8 @@ async def detect_language(request: TranscriptionRequest):
                 "error": error_msg
             }
         
-        # Prepare audio for transcription
-        success, audio_path = audio_processor.prepare_audio_for_whisper(request.file_path)
+        # Prepare audio for transcription using optimized backend
+        success, audio_path = audio_processor.prepare_audio_for_whisper_fast(request.file_path)
         if not success:
             return {
                 "success": False,

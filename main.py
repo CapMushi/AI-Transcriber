@@ -99,7 +99,7 @@ Examples:
     
     # Prepare audio for transcription
     print("🎵 Preparing audio for transcription...")
-    success, audio_path = audio_processor.prepare_audio_for_whisper(args.file_path)
+    success, audio_path = audio_processor.prepare_audio_for_whisper_fast(args.file_path)
     
     if not success:
         print(f"❌ Audio preparation failed: {audio_path}")

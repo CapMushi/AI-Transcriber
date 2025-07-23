@@ -235,6 +235,50 @@ class VectorHandler:
                 "confidence": 0.0
             }
     
+    async def search_content_matches_optimized(self,
+                                             secondary_transcription: Dict[str, Any],
+                                             threshold: float = 0.95) -> Dict[str, Any]:
+        """
+        OPTIMIZED: Search for secondary content matches using batch processing
+        
+        Args:
+            secondary_transcription: Transcription result from secondary file
+            threshold: Confidence threshold for matches (0.0 to 1.0)
+            
+        Returns:
+            Dictionary with search results including matches and timestamps
+        """
+        print(f"🔍 DEBUG: VectorHandler.search_content_matches_optimized called with threshold={threshold}")
+        
+        try:
+            # Validate that we have secondary transcription data
+            if not secondary_transcription.get("success", False):
+                print("❌ DEBUG: No successful secondary transcription data")
+                return {
+                    "success": False,
+                    "error": "No successful secondary transcription data"
+                }
+            
+            print(f"🔍 DEBUG: Secondary transcription: {secondary_transcription.get('text', '')[:100]}...")
+            
+            # Search for content matches using optimized batch processing
+            print(f"🔍 DEBUG: Calling vector_store.search_content_matches_optimized")
+            search_result = self.vector_store.search_content_matches_optimized(
+                secondary_transcription=secondary_transcription,
+                threshold=threshold
+            )
+            
+            print(f"🔍 DEBUG: VectorHandler optimized search result: {search_result}")
+            return search_result
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Optimized content search error: {str(e)}",
+                "matches": [],
+                "confidence": 0.0
+            }
+    
     def get_storage_status(self) -> Dict[str, Any]:
         """
         Get Pinecone storage status

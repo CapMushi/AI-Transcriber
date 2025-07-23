@@ -83,6 +83,33 @@ class PineconeVectorStore:
             print(f"❌ Embedding generation failed: {e}")
             return None
     
+    def get_embeddings_batch(self, texts: List[str]) -> List[Optional[List[float]]]:
+        """
+        Get embeddings for multiple texts in a single API call
+        
+        Args:
+            texts: List of texts to embed
+            
+        Returns:
+            List of embedding vectors (None for failed embeddings)
+        """
+        if not self.openai_client:
+            print("❌ OpenAI client not available")
+            return [None] * len(texts)
+        
+        if not texts:
+            return []
+        
+        try:
+            response = self.openai_client.embeddings.create(
+                model="text-embedding-3-small",
+                input=texts
+            )
+            return [data.embedding for data in response.data]
+        except Exception as e:
+            print(f"❌ Batch embedding generation failed: {e}")
+            return [None] * len(texts)
+    
     def clear_existing_embeddings(self) -> bool:
         """
         Clear all existing embeddings from Pinecone index
@@ -164,14 +191,49 @@ class PineconeVectorStore:
             secondary_chunks = self._chunk_secondary_text(secondary_transcription)
             print(f"🔍 DEBUG: Chunked secondary into {len(secondary_chunks)} chunks")
 
+            # Extract chunk texts for batch embedding generation
+            chunk_texts = []
+            valid_chunks = []
+            for chunk in secondary_chunks:
+                chunk_text = chunk.get("text", "").strip()
+                if chunk_text:
+                    chunk_texts.append(chunk_text)
+                    valid_chunks.append(chunk)
+
+            if not chunk_texts:
+                print("❌ DEBUG: No valid chunk texts found")
+                return {
+                    "success": False,
+                    "error": "No valid chunk texts found",
+                    "matches": [],
+                    "confidence": 0.0
+                }
+
+            # Generate embeddings for all chunks in batch
+            print(f"🔍 DEBUG: Generating batch embeddings for {len(chunk_texts)} chunks")
+            batch_embeddings = self.get_embeddings_batch(chunk_texts)
+            
+            if not batch_embeddings or all(emb is None for emb in batch_embeddings):
+                print("❌ DEBUG: Failed to generate batch embeddings")
+                return {
+                    "success": False,
+                    "error": "Failed to generate batch embeddings",
+                    "matches": [],
+                    "confidence": 0.0
+                }
+
             all_matches = []
             total_confidence = 0.0
-            for chunk_idx, chunk in enumerate(secondary_chunks):
-                chunk_text = chunk.get("text", "").strip()
-                if not chunk_text:
+            
+            # Process each chunk with its pre-generated embedding
+            for chunk_idx, (chunk, chunk_text, embedding) in enumerate(zip(valid_chunks, chunk_texts, batch_embeddings)):
+                if not embedding:
+                    print(f"❌ DEBUG: No embedding for chunk {chunk_idx+1}")
                     continue
-                print(f"🔍 DEBUG: Searching chunk {chunk_idx+1}/{len(secondary_chunks)}: '{chunk_text[:50]}...'")
-                chunk_matches = self._search_single_chunk(chunk_text, adjusted_threshold)
+                    
+                print(f"🔍 DEBUG: Searching chunk {chunk_idx+1}/{len(valid_chunks)}: '{chunk_text[:50]}...'")
+                chunk_matches = self._search_with_embedding(embedding, adjusted_threshold)
+                
                 for match in chunk_matches:
                     confidence = getattr(match, 'score', 0.0)
                     metadata = getattr(match, 'metadata', {})
@@ -217,6 +279,171 @@ class PineconeVectorStore:
                 "confidence": 0.0
             }
     
+    def search_content_matches_optimized(self,
+                                       secondary_transcription: Dict[str, Any],
+                                       threshold: float = 0.95) -> Dict[str, Any]:
+        """
+        OPTIMIZED: Search for secondary content matches using batch Pinecone queries
+        
+        Args:
+            secondary_transcription: Transcription result from secondary file
+            threshold: Confidence threshold for matches (0.0 to 1.0)
+            
+        Returns:
+            Dictionary with search results including matches and timestamps
+        """
+        print(f"🔍 DEBUG: OPTIMIZED search_content_matches called with threshold={threshold}")
+        
+        if not self.validate_configuration():
+            print("❌ DEBUG: Configuration validation failed")
+            return {
+                "success": False,
+                "error": "Configuration validation failed",
+                "matches": [],
+                "confidence": 0.0
+            }
+        
+        try:
+            # Get secondary text
+            secondary_text = secondary_transcription.get("text", "").strip()
+            if not secondary_text:
+                print("❌ DEBUG: No text found in secondary transcription")
+                return {
+                    "success": False,
+                    "error": "No text found in secondary transcription",
+                    "matches": [],
+                    "confidence": 0.0
+                }
+            print(f"🔍 DEBUG: Secondary text: '{secondary_text}'")
+
+            # Dynamic threshold based on content length
+            secondary_length = len(secondary_text)
+            if secondary_length < 100:  # Short content
+                adjusted_threshold = 0.5  # Lower threshold for short content
+                print(f"📏 DEBUG: Short secondary content ({secondary_length} chars), using lower threshold: {adjusted_threshold}")
+            elif secondary_length > 500:  # Very long content
+                adjusted_threshold = 0.3  # Much lower threshold for very long content
+                print(f"📏 DEBUG: Very long secondary content ({secondary_length} chars), using much lower threshold: {adjusted_threshold}")
+            else:  # Medium content
+                adjusted_threshold = threshold  # Use original threshold
+                print(f"📏 DEBUG: Using original threshold: {adjusted_threshold}")
+
+            # Chunk the secondary text
+            secondary_chunks = self._chunk_secondary_text(secondary_transcription)
+            print(f"🔍 DEBUG: Chunked secondary into {len(secondary_chunks)} chunks")
+
+            # Extract chunk texts for batch embedding generation
+            chunk_texts = []
+            valid_chunks = []
+            for chunk in secondary_chunks:
+                chunk_text = chunk.get("text", "").strip()
+                if chunk_text:
+                    chunk_texts.append(chunk_text)
+                    valid_chunks.append(chunk)
+
+            if not chunk_texts:
+                print("❌ DEBUG: No valid chunk texts found")
+                return {
+                    "success": False,
+                    "error": "No valid chunk texts found",
+                    "matches": [],
+                    "confidence": 0.0
+                }
+
+            # Generate embeddings for all chunks in batch (already optimized)
+            print(f"🔍 DEBUG: Generating batch embeddings for {len(chunk_texts)} chunks")
+            batch_embeddings = self.get_embeddings_batch(chunk_texts)
+            
+            if not batch_embeddings or all(emb is None for emb in batch_embeddings):
+                print("❌ DEBUG: Failed to generate batch embeddings")
+                return {
+                    "success": False,
+                    "error": "Failed to generate batch embeddings",
+                    "matches": [],
+                    "confidence": 0.0
+                }
+
+            # OPTIMIZATION: Parallel individual queries instead of sequential
+            if self.index and batch_embeddings:
+                try:
+                    print(f"🔍 DEBUG: OPTIMIZED: Running {len(batch_embeddings)} queries in parallel")
+                    import concurrent.futures
+                    from concurrent.futures import ThreadPoolExecutor
+
+                    all_matches = []
+                    total_confidence = 0.0
+
+                    def process_chunk(args):
+                        chunk_idx, chunk_text, embedding = args
+                        if not embedding:
+                            print(f"❌ DEBUG: No embedding for chunk {chunk_idx+1}")
+                            return []
+                        print(f"🔍 DEBUG: Processing chunk {chunk_idx+1}/{len(chunk_texts)}: '{chunk_text[:50]}...'")
+                        chunk_matches = self._search_with_embedding(embedding, adjusted_threshold)
+                        chunk_results = []
+                        for match in chunk_matches:
+                            confidence = getattr(match, 'score', 0.0)
+                            metadata = getattr(match, 'metadata', {})
+                            match_text = metadata.get("text", "")
+                            has_content_overlap = self._check_content_overlap(chunk_text, match_text)
+                            print(f"🔍 DEBUG: Chunk {chunk_idx+1} match - Confidence: {confidence:.3f}, Overlap: {has_content_overlap}")
+                            if has_content_overlap:
+                                chunk_results.append({
+                                    "start_time": metadata.get("start_time", 0.0),
+                                    "end_time": metadata.get("end_time", 0.0),
+                                    "text": match_text,
+                                    "confidence": confidence,
+                                    "segment_index": metadata.get("segment_index", 0)
+                                })
+                                print(f"✅ DEBUG: Chunk {chunk_idx+1} match added to results")
+                            else:
+                                print(f"❌ DEBUG: Chunk {chunk_idx+1} match rejected (no content overlap)")
+                        return chunk_results
+
+                    chunk_args = [(i, chunk_texts[i], batch_embeddings[i]) for i in range(len(chunk_texts))]
+                    with ThreadPoolExecutor(max_workers=min(8, len(chunk_args))) as executor:
+                        results = list(executor.map(process_chunk, chunk_args))
+                        for chunk_result in results:
+                            all_matches.extend(chunk_result)
+                            total_confidence += sum(match["confidence"] for match in chunk_result)
+
+                    print(f"🔍 DEBUG: OPTIMIZED: {len(all_matches)} total matches from parallel queries")
+
+                    # Merge overlapping matches (same logic as original)
+                    merged_matches = self._merge_overlapping_matches(all_matches)
+                    print(f"🔍 DEBUG: After merging: {len(merged_matches)} unique matches")
+
+                    avg_confidence = total_confidence / len(all_matches) if all_matches else 0.0
+                    result = {
+                        "success": True,
+                        "matches": merged_matches,
+                        "confidence": avg_confidence,
+                        "found": len(merged_matches) > 0,
+                        "total_matches": len(merged_matches),
+                        "search_text": secondary_text,
+                        "adjusted_threshold": adjusted_threshold,
+                        "processing_mode": "parallel_optimized"  # Indicate parallel processing was used
+                    }
+                    print(f"🔍 DEBUG: OPTIMIZED Final result: {result}")
+                    return result
+
+                except Exception as e:
+                    print(f"❌ DEBUG: Parallel query failed: {e}")
+                    print("🔄 DEBUG: Falling back to sequential processing")
+                    # Fallback to original sequential method
+                    return self.search_content_matches(secondary_transcription, threshold)
+            else:
+                print("❌ DEBUG: Index or embeddings not available for parallel query")
+                return self.search_content_matches(secondary_transcription, threshold)
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Optimized content search failed: {str(e)}",
+                "matches": [],
+                "confidence": 0.0
+            }
+    
     def _search_single_chunk(self, chunk_text: str, adjusted_threshold: float) -> list:
         """
         Search a single secondary chunk embedding against Pinecone and return matches above threshold.
@@ -242,6 +469,32 @@ class PineconeVectorStore:
         query_matches = getattr(results, 'matches', [])
         filtered = [m for m in query_matches if getattr(m, 'score', 0.0) >= adjusted_threshold]
         print(f"🔍 DEBUG: _search_single_chunk found {len(filtered)} matches above threshold {adjusted_threshold}")
+        return filtered
+    
+    def _search_with_embedding(self, embedding: List[float], adjusted_threshold: float) -> list:
+        """
+        Search using pre-generated embedding against Pinecone and return matches above threshold.
+        Args:
+            embedding: Pre-generated embedding vector
+            adjusted_threshold: Confidence threshold for matches
+        Returns:
+            List of Pinecone match objects above threshold
+        """
+        if not embedding:
+            print("❌ DEBUG: No embedding provided for search")
+            return []
+        if self.index_name not in self.client.list_indexes().names():
+            print(f"❌ DEBUG: Index '{self.index_name}' not found")
+            return []
+        self.index = self.client.Index(self.index_name)
+        results = self.index.query(
+            vector=embedding,
+            top_k=10,
+            include_metadata=True
+        )
+        query_matches = getattr(results, 'matches', [])
+        filtered = [m for m in query_matches if getattr(m, 'score', 0.0) >= adjusted_threshold]
+        print(f"🔍 DEBUG: _search_with_embedding found {len(filtered)} matches above threshold {adjusted_threshold}")
         return filtered
     
     def _check_content_overlap(self, secondary_text: str, primary_text: str) -> bool:
@@ -408,19 +661,21 @@ class PineconeVectorStore:
             # Store chunks in Pinecone
             vectors_to_upsert = []
             
-            for chunk in chunks:
-                # Generate embedding
-                embedding = self.get_embedding(chunk["text"])
-                if not embedding:
-                    continue
-                
-                # Create vector record
-                vector_record = {
-                    "id": chunk["id"],
-                    "values": embedding,
-                    "metadata": chunk["metadata"]
-                }
-                vectors_to_upsert.append(vector_record)
+            # Get all chunk texts for batch embedding
+            chunk_texts = [chunk["text"] for chunk in chunks]
+            
+            # Generate embeddings in batch
+            embeddings = self.get_embeddings_batch(chunk_texts)
+            
+            # Create vector records
+            for chunk, embedding in zip(chunks, embeddings):
+                if embedding:
+                    vector_record = {
+                        "id": chunk["id"],
+                        "values": embedding,
+                        "metadata": chunk["metadata"]
+                    }
+                    vectors_to_upsert.append(vector_record)
             
             if vectors_to_upsert:
                 # Upsert in batches
