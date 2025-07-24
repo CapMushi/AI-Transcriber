@@ -232,27 +232,24 @@ class PineconeVectorStore:
                     continue
                     
                 print(f"🔍 DEBUG: Searching chunk {chunk_idx+1}/{len(valid_chunks)}: '{chunk_text[:50]}...'")
-                chunk_matches = self._search_with_embedding(embedding, adjusted_threshold)
+                # Use optimized search with early termination
+                chunk_matches = self._search_with_embedding_optimized(embedding, chunk_text, adjusted_threshold)
                 
                 for match in chunk_matches:
                     confidence = getattr(match, 'score', 0.0)
                     metadata = getattr(match, 'metadata', {})
                     match_text = metadata.get("text", "")
-                    # Check both semantic similarity AND content overlap
-                    has_content_overlap = self._check_content_overlap(chunk_text, match_text)
-                    print(f"🔍 DEBUG: Chunk {chunk_idx+1} match - Confidence: {confidence:.3f}, Overlap: {has_content_overlap}")
-                    if has_content_overlap:
-                        all_matches.append({
-                            "start_time": metadata.get("start_time", 0.0),
-                            "end_time": metadata.get("end_time", 0.0),
-                            "text": match_text,
-                            "confidence": confidence,
-                            "segment_index": metadata.get("segment_index", 0)
-                        })
-                        total_confidence += confidence
-                        print(f"✅ DEBUG: Chunk {chunk_idx+1} match added to results")
-                    else:
-                        print(f"❌ DEBUG: Chunk {chunk_idx+1} match rejected (no content overlap)")
+                    # Content overlap already checked in optimized search
+                    print(f"🔍 DEBUG: Chunk {chunk_idx+1} match - Confidence: {confidence:.3f}, Overlap: True (pre-validated)")
+                    all_matches.append({
+                        "start_time": metadata.get("start_time", 0.0),
+                        "end_time": metadata.get("end_time", 0.0),
+                        "text": match_text,
+                        "confidence": confidence,
+                        "segment_index": metadata.get("segment_index", 0)
+                    })
+                    total_confidence += confidence
+                    print(f"✅ DEBUG: Chunk {chunk_idx+1} match added to results")
 
             print(f"🔍 DEBUG: {len(all_matches)} total matches above threshold AND with content overlap from all chunks")
             # Merge overlapping matches
@@ -379,25 +376,23 @@ class PineconeVectorStore:
                             print(f"❌ DEBUG: No embedding for chunk {chunk_idx+1}")
                             return []
                         print(f"🔍 DEBUG: Processing chunk {chunk_idx+1}/{len(chunk_texts)}: '{chunk_text[:50]}...'")
-                        chunk_matches = self._search_with_embedding(embedding, adjusted_threshold)
+                        # Use optimized search with early termination
+                        chunk_matches = self._search_with_embedding_optimized(embedding, chunk_text, adjusted_threshold)
                         chunk_results = []
                         for match in chunk_matches:
                             confidence = getattr(match, 'score', 0.0)
                             metadata = getattr(match, 'metadata', {})
                             match_text = metadata.get("text", "")
-                            has_content_overlap = self._check_content_overlap(chunk_text, match_text)
-                            print(f"🔍 DEBUG: Chunk {chunk_idx+1} match - Confidence: {confidence:.3f}, Overlap: {has_content_overlap}")
-                            if has_content_overlap:
-                                chunk_results.append({
-                                    "start_time": metadata.get("start_time", 0.0),
-                                    "end_time": metadata.get("end_time", 0.0),
-                                    "text": match_text,
-                                    "confidence": confidence,
-                                    "segment_index": metadata.get("segment_index", 0)
-                                })
-                                print(f"✅ DEBUG: Chunk {chunk_idx+1} match added to results")
-                            else:
-                                print(f"❌ DEBUG: Chunk {chunk_idx+1} match rejected (no content overlap)")
+                            # Content overlap already checked in optimized search
+                            print(f"🔍 DEBUG: Chunk {chunk_idx+1} match - Confidence: {confidence:.3f}, Overlap: True (pre-validated)")
+                            chunk_results.append({
+                                "start_time": metadata.get("start_time", 0.0),
+                                "end_time": metadata.get("end_time", 0.0),
+                                "text": match_text,
+                                "confidence": confidence,
+                                "segment_index": metadata.get("segment_index", 0)
+                            })
+                            print(f"✅ DEBUG: Chunk {chunk_idx+1} match added to results")
                         return chunk_results
 
                     chunk_args = [(i, chunk_texts[i], batch_embeddings[i]) for i in range(len(chunk_texts))]
@@ -457,20 +452,95 @@ class PineconeVectorStore:
         if not search_embedding:
             print("❌ DEBUG: Failed to generate embedding for chunk text")
             return []
+        # Use optimized search with early termination
+        return self._search_with_embedding_optimized(search_embedding, chunk_text, adjusted_threshold)
+    
+    def _calculate_dynamic_top_k(self, chunk_text: str, adjusted_threshold: float) -> int:
+        """
+        Calculate dynamic top_k based on content characteristics
+        """
+        chunk_length = len(chunk_text)
+        word_count = len(chunk_text.split())
+        
+        # Base top_k on content length
+        if chunk_length < 50:  # Very short content
+            base_top_k = 3  # Fewer candidates needed
+        elif chunk_length < 150:  # Short content
+            base_top_k = 5  # Moderate candidates
+        elif chunk_length < 300:  # Medium content
+            base_top_k = 7  # More candidates for medium content
+        else:  # Long content
+            base_top_k = 10  # Maximum candidates for long content
+        
+        # Threshold-based adjustment
+        if adjusted_threshold > 0.8:  # High confidence requirement
+            top_k = max(3, base_top_k - 2)  # Reduce for high confidence
+        elif adjusted_threshold > 0.6:  # Medium confidence
+            top_k = base_top_k  # Use base value
+        else:  # Low confidence requirement
+            top_k = min(10, base_top_k + 2)  # Increase for low confidence
+        
+        print(f"🔍 DEBUG: Dynamic top_k={top_k} (length={chunk_length}, threshold={adjusted_threshold})")
+        return top_k
+
+    def _search_with_embedding_optimized(self, embedding: List[float], chunk_text: str, adjusted_threshold: float) -> list:
+        """
+        OPTIMIZED: Search using pre-generated embedding with early termination for perfect matches.
+        Args:
+            embedding: Pre-generated embedding vector
+            chunk_text: Text of the secondary chunk for content overlap checking
+            adjusted_threshold: Confidence threshold for matches
+        Returns:
+            List of Pinecone match objects above threshold with early termination
+        """
+        if not embedding:
+            print("❌ DEBUG: No embedding provided for search")
+            return []
         if self.index_name not in self.client.list_indexes().names():
             print(f"❌ DEBUG: Index '{self.index_name}' not found")
             return []
+        
         self.index = self.client.Index(self.index_name)
+        top_k = self._calculate_dynamic_top_k(chunk_text, adjusted_threshold)
         results = self.index.query(
-            vector=search_embedding,
-            top_k=10,
+            vector=embedding,
+            top_k=top_k,
             include_metadata=True
         )
         query_matches = getattr(results, 'matches', [])
         filtered = [m for m in query_matches if getattr(m, 'score', 0.0) >= adjusted_threshold]
-        print(f"🔍 DEBUG: _search_single_chunk found {len(filtered)} matches above threshold {adjusted_threshold}")
-        return filtered
-    
+        print(f"🔍 DEBUG: _search_with_embedding_optimized found {len(filtered)} matches above threshold {adjusted_threshold}")
+        
+        # Early termination logic
+        optimized_matches = []
+        for match in filtered:
+            confidence = getattr(match, 'score', 0.0)
+            metadata = getattr(match, 'metadata', {})
+            match_text = metadata.get("text", "")
+            has_content_overlap = self._check_content_overlap(chunk_text, match_text)
+            
+            print(f"🔍 DEBUG: Optimized match check - Confidence: {confidence:.3f}, Overlap: {has_content_overlap}")
+            
+            if has_content_overlap:
+                optimized_matches.append(match)
+                
+                # Early termination for perfect matches
+                if confidence >= 0.95:
+                    print(f"✅ DEBUG: Perfect match found! Stopping search for this chunk.")
+                    return optimized_matches
+                
+                # Early termination for very high confidence matches
+                elif confidence >= 0.9:
+                    print(f"✅ DEBUG: Very high confidence match found! Stopping search for this chunk.")
+                    return optimized_matches
+                
+                # Limit checks for high confidence matches
+                elif confidence >= 0.8 and len(optimized_matches) >= 2:
+                    print(f"✅ DEBUG: High confidence match found! Limiting remaining checks.")
+                    return optimized_matches
+        
+        return optimized_matches
+
     def _search_with_embedding(self, embedding: List[float], adjusted_threshold: float) -> list:
         """
         Search using pre-generated embedding against Pinecone and return matches above threshold.
@@ -487,6 +557,7 @@ class PineconeVectorStore:
             print(f"❌ DEBUG: Index '{self.index_name}' not found")
             return []
         self.index = self.client.Index(self.index_name)
+        # Use default top_k=10 for backward compatibility (this method doesn't have chunk_text)
         results = self.index.query(
             vector=embedding,
             top_k=10,
