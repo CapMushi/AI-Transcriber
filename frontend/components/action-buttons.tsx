@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { GlassButton } from "@/components/glass-button"
-import { Zap, Search } from "lucide-react"
+import { Zap, Search, Trash2 } from "lucide-react"
 import { useWhisperContext } from "@/contexts/whisper-context"
 
 export function ActionButtons() {
@@ -13,8 +13,10 @@ export function ActionButtons() {
     transcription,
     isTranscribing,
     isComparing,
+    isClearing,
     transcribeFile,
     storePrimaryContent,
+    clearEmbeddings,
     compareContent
   } = useWhisperContext()
 
@@ -74,6 +76,14 @@ export function ActionButtons() {
     console.log('🔍 Comparison result:', compareResult)
   }, [primaryFile, secondaryFile, storePrimaryContent, compareContent])
 
+  const handleClearEmbeddings = useCallback(async () => {
+    console.log('🧹 Clear embeddings button clicked')
+    
+    console.log('🔄 Starting clear embeddings...')
+    const result = await clearEmbeddings()
+    console.log('🧹 Clear embeddings result:', result)
+  }, [clearEmbeddings])
+
   return (
     <div className="flex flex-col gap-4">
       {/* Main Action Buttons */}
@@ -102,6 +112,15 @@ export function ActionButtons() {
           <span className="text-xs opacity-50">
             ({primaryFile && secondaryFile ? 'Both Ready' : 'Need Both Files'})
           </span>
+        </GlassButton>
+
+        <GlassButton
+          onClick={handleClearEmbeddings}
+          disabled={isClearing}
+          className="px-6 py-2 text-sm font-semibold bg-red-500/70 hover:bg-red-500/90 border-red-500/80 flex items-center gap-2 text-light-gray disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Trash2 className="h-4 w-4" />
+          {isClearing ? "Clearing..." : "Clear Embeddings"}
         </GlassButton>
       </div>
     </div>

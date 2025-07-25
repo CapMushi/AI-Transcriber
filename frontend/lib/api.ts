@@ -81,6 +81,12 @@ export interface StorePrimaryResponse {
   storage_in_progress?: boolean  // NEW: Indicates if storage is happening in background
 }
 
+export interface ClearEmbeddingsResponse {
+  success: boolean
+  message: string
+  error?: string
+}
+
 // API Error Class
 export class APIError extends Error {
   constructor(
@@ -352,20 +358,31 @@ class APIService {
       )
     }
   }
+
+  // Clear Embeddings
+  async clearEmbeddings(): Promise<ClearEmbeddingsResponse> {
+    console.log('🧹 API: Clearing embeddings...')
+    try {
+      const result = await this.request<ClearEmbeddingsResponse>('/api/clear-embeddings', {
+        method: 'POST',
+      })
+      console.log('✅ API: Embeddings cleared:', result)
+      return result
+    } catch (error) {
+      console.error('💥 API: Clear embeddings error:', error)
+      if (error instanceof APIError) {
+        throw error
+      }
+      throw new APIError(
+        error instanceof Error ? error.message : 'Clear embeddings failed',
+        0,
+        error
+      )
+    }
+  }
 }
 
 // Export singleton instance
 export const apiService = new APIService()
 
-// Export types for use in components
-export type {
-  FileInfo,
-  UploadResponse,
-  TranscriptionResponse,
-  TranscriptionSegment,
-  SupportedFormats,
-  AvailableModels,
-  DownloadFormats,
-  ComparisonResponse,
-  StorePrimaryResponse,
-} 
+ 

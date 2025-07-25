@@ -715,6 +715,17 @@ class PineconeVectorStore:
             return False
         
         try:
+            # NEW: Check if chunks already exist
+            print(f"🔍 DEBUG: store_transcription_chunks called with:")
+            print(f"  - file_id: {file_id}")
+            print(f"  - file_metadata: {file_metadata}")
+            print(f"  - transcription_data keys: {list(transcription_data.keys())}")
+            
+            if self.check_existing_chunks(file_metadata):
+                print(f"✅ Chunks already exist for file: {file_metadata.get('original_name')}")
+                print("⏭️ Skipping storage and indexing wait")
+                return True  # Return success without storing
+            
             # Get or create index
             if self.index_name not in self.client.list_indexes().names():
                 print(f"❌ Index '{self.index_name}' not found")
@@ -977,4 +988,112 @@ class PineconeVectorStore:
             
         except Exception as e:
             print(f"❌ Pinecone search failed: {e}")
-            return [] 
+            return []
+
+    def check_existing_chunks(self, file_metadata: Dict[str, Any]) -> bool:
+        """
+        Check if chunks for this file already exist in Pinecone
+        
+        Args:
+            file_metadata: File information to check against
+            
+        Returns:
+            True if chunks exist, False otherwise
+        """
+        print(f"🔍 DEBUG: check_existing_chunks called with file_metadata: {file_metadata}")
+        
+        if not self.validate_configuration():
+            print("❌ DEBUG: Vector store configuration invalid")
+            return False
+        
+        try:
+            # Get index
+            if self.index_name not in self.client.list_indexes().names():
+                print(f"❌ DEBUG: Index '{self.index_name}' not found in available indexes")
+                return False
+            
+            print(f"✅ DEBUG: Found index '{self.index_name}', connecting...")
+            self.index = self.client.Index(self.index_name)
+            
+            # NEW: Use stable identifiers instead of UUID filename
+            # Check for chunks with same file size and duration (more reliable than filename)
+            file_size_mb = file_metadata.get("size_mb", 0)
+            duration = file_metadata.get("duration", 0)
+            
+            print(f"🔍 DEBUG: Looking for chunks with size={file_size_mb}MB, duration={duration}s")
+            
+            # Create filter for existing chunks using stable identifiers
+            filter_metadata = {
+                "file_size_mb": file_size_mb,
+                "duration": duration
+            }
+            
+            # Remove any None values from filter to avoid Pinecone errors
+            filter_metadata = {k: v for k, v in filter_metadata.items() if v is not None and v > 0}
+            
+            print(f"🔍 DEBUG: Duplicate check filter: {filter_metadata}")
+            
+            # If no valid filter fields, we can't check for duplicates
+            if not filter_metadata:
+                print("⚠️ No valid filter fields for duplicate check, proceeding with storage")
+                return False
+            
+            # Query with dummy vector to check existence
+            dummy_vector = [0.0] * 1536  # OpenAI embedding dimension
+            print(f"🔍 DEBUG: Executing Pinecone query with filter: {filter_metadata}")
+            
+            results = self.index.query(
+                vector=dummy_vector,
+                top_k=10,  # Get more results to debug
+                filter=filter_metadata,
+                include_metadata=True  # Include metadata to see what's stored
+            )
+            
+            print(f"🔍 DEBUG: Pinecone query completed, raw results: {results}")
+            
+            # If we get any results, chunks exist
+            matches = getattr(results, 'matches', [])
+            exists = len(matches) > 0
+            
+            print(f"🔍 DEBUG: Query returned {len(matches)} matches")
+            print(f"🔍 Duplicate check for size={file_size_mb}MB, duration={duration}s: {'EXISTS' if exists else 'NOT FOUND'}")
+            
+            # Debug: Show what we found
+            if matches:
+                print(f"🔍 DEBUG: Found {len(matches)} existing chunks:")
+                for i, match in enumerate(matches[:3]):  # Show first 3 matches
+                    metadata = getattr(match, 'metadata', {})
+                    stored_size = metadata.get('file_size_mb', 0)
+                    stored_duration = metadata.get('duration', 0)
+                    size_diff = abs(stored_size - file_size_mb)
+                    duration_diff = abs(stored_duration - duration)
+                    print(f"  Match {i+1}: filename='{metadata.get('original_filename')}', size={stored_size}, duration={stored_duration}")
+                    print(f"    Size diff: {size_diff}, Duration diff: {duration_diff}")
+                    print(f"    Full metadata: {metadata}")
+            else:
+                print(f"🔍 DEBUG: No existing chunks found with filter: {filter_metadata}")
+                
+                # Try a broader search to see what's actually in the index
+                print(f"🔍 DEBUG: Trying broader search without filter...")
+                try:
+                    broader_results = self.index.query(
+                        vector=dummy_vector,
+                        top_k=5,
+                        include_metadata=True
+                    )
+                    broader_matches = getattr(broader_results, 'matches', [])
+                    print(f"🔍 DEBUG: Broader search found {len(broader_matches)} total chunks:")
+                    for i, match in enumerate(broader_matches):
+                        metadata = getattr(match, 'metadata', {})
+                        print(f"  Broader Match {i+1}: filename='{metadata.get('original_filename')}', size={metadata.get('file_size_mb')}, duration={metadata.get('duration')}")
+                except Exception as broader_e:
+                    print(f"❌ DEBUG: Broader search failed: {broader_e}")
+            
+            return exists
+            
+        except Exception as e:
+            print(f"❌ Duplicate check failed: {e}")
+            import traceback
+            print(f"❌ DEBUG: Full traceback:")
+            traceback.print_exc()
+            return False 

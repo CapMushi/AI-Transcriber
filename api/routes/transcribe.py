@@ -451,8 +451,14 @@ async def store_primary_content(request: StorePrimaryRequest):
             file_info = audio_processor.get_file_info(request.file_path)
             
             # Prepare file metadata
+            original_filename = os.path.basename(request.file_path)
+            print(f"🔍 DEBUG: store-primary API route preparing metadata:")
+            print(f"  - request.file_path: '{request.file_path}'")
+            print(f"  - os.path.basename result: '{original_filename}'")
+            print(f"  - file_info: {file_info}")
+            
             file_metadata = vector_handler.prepare_file_metadata(
-                original_filename=os.path.basename(request.file_path),
+                original_filename=original_filename,
                 file_info=file_info
             )
             
@@ -765,4 +771,33 @@ async def get_available_models():
 @router.get("/storage-status")
 async def get_storage_status():
     """Get Pinecone storage status"""
-    return vector_handler.get_storage_status() 
+    return vector_handler.get_storage_status()
+
+
+class ClearEmbeddingsResponse(BaseModel):
+    """Response model for clear embeddings"""
+    success: bool
+    message: str
+    error: str = None
+
+
+@router.post("/clear-embeddings", response_model=ClearEmbeddingsResponse)
+async def clear_embeddings():
+    """Manually clear all embeddings from Pinecone"""
+    try:
+        success = vector_handler.clear_embeddings()
+        if success:
+            return ClearEmbeddingsResponse(
+                success=True,
+                message="Successfully cleared all embeddings from Pinecone"
+            )
+        else:
+            return ClearEmbeddingsResponse(
+                success=False,
+                error="Failed to clear embeddings"
+            )
+    except Exception as e:
+        return ClearEmbeddingsResponse(
+            success=False,
+            error=f"Clear embeddings error: {str(e)}"
+        ) 

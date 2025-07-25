@@ -126,7 +126,7 @@ class VectorHandler:
                                    transcription_data: Dict[str, Any],
                                    file_metadata: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Store primary content in Pinecone (clearing existing embeddings first)
+        Store primary content in Pinecone
         
         Args:
             file_id: Unique identifier for the file
@@ -152,18 +152,6 @@ class VectorHandler:
                     "error": "No segments found in transcription data"
                 }
             
-            # Clear existing embeddings first
-            print("🔄 VectorHandler: Clearing existing embeddings...")
-            clear_success = self.vector_store.clear_existing_embeddings()
-            print(f"🔄 VectorHandler: Clear result: {clear_success}")
-            
-            if not clear_success:
-                print("❌ VectorHandler: Failed to clear existing embeddings")
-                return {
-                    "success": False,
-                    "error": "Failed to clear existing embeddings"
-                }
-            
             # Store primary content chunks in Pinecone
             success = self.vector_store.store_transcription_chunks(
                 file_id=file_id,
@@ -174,10 +162,10 @@ class VectorHandler:
             if success:
                 return {
                     "success": True,
-                    "message": f"Stored primary content for file {file_id} (cleared existing embeddings)",
+                    "message": f"Stored primary content for file {file_id}",
                     "file_id": file_id,
                     "chunks_stored": len(segments),
-                    "embeddings_cleared": True
+                    "embeddings_cleared": False
                 }
             else:
                 return {
@@ -190,6 +178,19 @@ class VectorHandler:
                 "success": False,
                 "error": f"Primary content storage error: {str(e)}"
             }
+
+    def clear_embeddings(self) -> bool:
+        """
+        Clear all embeddings from Pinecone
+        
+        Returns:
+            True if clear successful, False otherwise
+        """
+        try:
+            return self.vector_store.clear_existing_embeddings()
+        except Exception as e:
+            print(f"❌ VectorHandler: Clear embeddings error: {e}")
+            return False
     
     async def search_content_matches(self,
                                    secondary_transcription: Dict[str, Any],
@@ -317,7 +318,7 @@ class VectorHandler:
         Returns:
             Prepared metadata dictionary
         """
-        return {
+        metadata = {
             "original_name": original_filename,
             "size_mb": file_info.get("size_mb", 0),
             "duration": file_info.get("duration", 0),
@@ -327,4 +328,11 @@ class VectorHandler:
             "sample_rate": file_info.get("sample_rate", 0),
             "channels": file_info.get("channels", 0),
             "codec": file_info.get("codec", "unknown")
-        } 
+        }
+        
+        print(f"🔍 DEBUG: prepare_file_metadata called with:")
+        print(f"  - original_filename: '{original_filename}'")
+        print(f"  - file_info: {file_info}")
+        print(f"  - prepared metadata: {metadata}")
+        
+        return metadata 

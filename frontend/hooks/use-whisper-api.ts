@@ -35,6 +35,9 @@ export interface UseWhisperAPIState {
   isStoring: boolean  // NEW: Track storage progress
   storageProgress: number  // NEW: Storage progress percentage
   
+  // Clear embeddings state
+  isClearing: boolean
+  
   // Comparison state
   comparisonResult: any | null
   isComparing: boolean
@@ -68,6 +71,9 @@ export interface UseWhisperAPIActions {
   // Storage operations
   storePrimaryContent: (model?: string, language?: string) => Promise<boolean>
   
+  // Clear embeddings operations
+  clearEmbeddings: () => Promise<boolean>
+  
   // Comparison operations
   compareContent: () => Promise<boolean>
   
@@ -100,6 +106,8 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
   
   const [isStoring, setIsStoring] = useState(false) // NEW: Track storage progress
   const [storageProgress, setStorageProgress] = useState(0) // NEW: Storage progress percentage
+  
+  const [isClearing, setIsClearing] = useState(false)
   
   const [comparisonResult, setComparisonResult] = useState<any | null>(null)
   const [isComparing, setIsComparing] = useState(false)
@@ -628,6 +636,29 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     }
   }, [])
 
+  // Clear embeddings
+  const clearEmbeddings = useCallback(async (): Promise<boolean> => {
+    try {
+      setIsClearing(true)
+      setError(null)
+      
+      const response = await apiService.clearEmbeddings()
+      
+      if (response.success) {
+        console.log('✅ Embeddings cleared successfully')
+        return true
+      } else {
+        setError(response.error || 'Failed to clear embeddings')
+        return false
+      }
+    } catch (error) {
+      setError('Clear embeddings failed')
+      return false
+    } finally {
+      setIsClearing(false)
+    }
+  }, [])
+
   // Debug: Monitor uploadedFile state changes
   useEffect(() => {
     console.log('🔄 uploadedFile state changed:', uploadedFile)
@@ -646,6 +677,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     transcriptionProgress,
     isStoring, // NEW: Expose storage progress state
     storageProgress, // NEW: Expose storage progress state
+    isClearing,
     comparisonResult,
     isComparing,
     supportedFormats,
@@ -665,6 +697,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     transcribeFile,
     detectLanguage,
     storePrimaryContent,
+    clearEmbeddings,
     compareContent,
     downloadTranscription,
     loadSupportedFormats,
