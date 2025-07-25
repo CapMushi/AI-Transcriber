@@ -1,0 +1,20 @@
+COMPLETE CHUNK ANALYSIS
+================================================================================
+Primary file: testing files\sp.mp3
+Secondary file: testing files\ss.mp3
+Analysis timestamp: 2025-07-25 10:32:05
+
+
+Processing primary file...
+
+Storing primary content...
+
+Processing secondary file...
+
+Searching for matches...
+Found 8 matches
+
+================================================================================
+ANALYSIS COMPLETE
+Output file: chunk_analysis_1753464725.txt
+Timestamp: 2025-07-25 10:42:25

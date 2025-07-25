@@ -1,0 +1,769 @@
+2025-07-25 10:07:22,750 - INFO - ================================================================================
+2025-07-25 10:07:22,751 - INFO - COMPARISON DEBUG SESSION STARTED
+2025-07-25 10:07:22,751 - INFO - ================================================================================
+2025-07-25 10:07:22,752 - INFO - Timestamp: 2025-07-25 10:07:22.752566
+2025-07-25 10:07:22,752 - INFO - Config: {'segment_based': True, 'max_segment_length': 500, 'min_chunk_size': 50, 'max_chunk_size': 1000, 'overlap_size': 200, 'preserve_timestamps': True, 'preserve_context': True}
+2025-07-25 10:07:22,752 - INFO - ================================================================================
+2025-07-25 10:07:22,753 - INFO - 
+================================================================================
+2025-07-25 10:07:22,754 - INFO - STARTING COMPARISON DEBUG WORKFLOW
+2025-07-25 10:07:22,754 - INFO - ================================================================================
+2025-07-25 10:07:22,755 - INFO - Primary file: testing files\sp.mp3
+2025-07-25 10:07:22,755 - INFO - Secondary file: testing files\ss.mp3
+2025-07-25 10:07:22,755 - INFO - Threshold: 0.7
+2025-07-25 10:07:22,755 - INFO - 
+==================================================
+2025-07-25 10:07:22,756 - INFO - STEP 1: PROCESSING PRIMARY FILE
+2025-07-25 10:07:22,756 - INFO - ==================================================
+2025-07-25 10:07:22,756 - INFO - 
+==================================================
+2025-07-25 10:07:22,756 - INFO - FILE INFO: PRIMARY
+2025-07-25 10:07:22,757 - INFO - ==================================================
+2025-07-25 10:07:22,757 - INFO - File path: testing files\sp.mp3
+2025-07-25 10:07:22,757 - INFO - File exists: True
+2025-07-25 10:07:22,757 - INFO - File size: 13913696 bytes
+2025-07-25 10:07:22,758 - INFO - File extension: .mp3
+2025-07-25 10:07:22,758 - INFO - File validation: PASS
+2025-07-25 10:07:22,795 - INFO - File info: {
+  "path": "testing files\\sp.mp3",
+  "name": "sp.mp3",
+  "extension": ".mp3",
+  "size_mb": 13.269134521484375,
+  "is_audio": true,
+  "is_video": false,
+  "duration": 869.54,
+  "sample_rate": 0,
+  "channels": 0,
+  "codec": "unknown"
+}
+2025-07-25 10:07:22,795 - INFO - 
+==================================================
+2025-07-25 10:07:22,795 - INFO - AUDIO PREPARATION: PRIMARY
+2025-07-25 10:07:22,796 - INFO - ==================================================
+2025-07-25 10:07:22,796 - INFO - Preparing audio for: testing files\sp.mp3
+2025-07-25 10:07:23,712 - INFO - Audio prepared successfully: testing files\sp_fast.wav
+2025-07-25 10:07:23,713 - INFO - Prepared audio size: 27825328 bytes
+2025-07-25 10:07:23,713 - INFO - 
+==================================================
+2025-07-25 10:07:23,713 - INFO - TRANSCRIPTION: PRIMARY
+2025-07-25 10:07:23,713 - INFO - ==================================================
+2025-07-25 10:07:23,713 - INFO - Model: base
+2025-07-25 10:07:23,714 - INFO - Language: auto
+2025-07-25 10:07:23,714 - INFO - Audio path: testing files\sp_fast.wav
+2025-07-25 10:08:46,998 - INFO - Transcription completed in 83.28 seconds
+2025-07-25 10:08:46,998 - INFO - Success: True
+2025-07-25 10:08:46,999 - INFO - Language detected: en
+2025-07-25 10:08:46,999 - INFO - Confidence: 83.551
+2025-07-25 10:08:46,999 - INFO - Text length: 11882 characters
+2025-07-25 10:08:46,999 - INFO - Number of segments: 203
+2025-07-25 10:08:46,999 - INFO - 
+First 5 segments:
+2025-07-25 10:08:46,999 - INFO -   Segment 1: 0.00s - 15.14s
+2025-07-25 10:08:47,000 - INFO -     Text: ' I'm honored to be with you today for your commencement from one of the finest universities'
+2025-07-25 10:08:47,000 - INFO -   Segment 2: 15.14s - 19.84s
+2025-07-25 10:08:47,000 - INFO -     Text: ' in the world.'
+2025-07-25 10:08:47,000 - INFO -   Segment 3: 19.84s - 27.72s
+2025-07-25 10:08:47,000 - INFO -     Text: ' Truth be told, I never graduated from college and this is the closest I've ever gotten'
+2025-07-25 10:08:47,001 - INFO -   Segment 4: 27.72s - 31.76s
+2025-07-25 10:08:47,001 - INFO -     Text: ' to a college graduation.'
+2025-07-25 10:08:47,001 - INFO -   Segment 5: 31.76s - 35.08s
+2025-07-25 10:08:47,001 - INFO -     Text: ' Today I want to tell you three stories from my life.'
+2025-07-25 10:08:47,001 - INFO -   ... and 198 more segments
+2025-07-25 10:08:47,002 - INFO - 
+==================================================
+2025-07-25 10:08:47,002 - INFO - STEP 2: STORING PRIMARY CONTENT
+2025-07-25 10:08:47,003 - INFO - ==================================================
+2025-07-25 10:08:47,003 - INFO - 
+==================================================
+2025-07-25 10:08:47,003 - INFO - STORING PRIMARY CONTENT
+2025-07-25 10:08:47,003 - INFO - ==================================================
+2025-07-25 10:08:47,004 - INFO - Clearing existing embeddings...
+2025-07-25 10:08:52,901 - INFO - Clear embeddings result: True
+2025-07-25 10:08:52,902 - INFO - Generated file ID: debug_1753463332
+2025-07-25 10:08:52,903 - INFO - Storing transcription chunks...
+2025-07-25 10:08:54,802 - DEBUG - Request options: {'method': 'post', 'url': '/embeddings', 'files': None, 'idempotency_key': 'stainless-python-retry-41d7c6d9-3bed-4647-9445-8e54798660c2', 'post_parser': <function Embeddings.create.<locals>.parser at 0x00000213D1D4F880>, 'json_data': {'input': ["I'm honored to be with you today for your commencement from one of the finest universities", 'in the world.', "Truth be told, I never graduated from college and this is the closest I've ever gotten", 'to a college graduation.', 'Today I want to tell you three stories from my life.', "That's it.", 'No big deal.', 'Just three stories.', 'The first story is about connecting the dots.', 'I dropped out of Reed College after the first six months but then stayed around as a drop', 'in for another 18 months or so before I really quit.', "So why'd I drop out?", 'It started before I was born.', 'My biological mother was a young, unwed graduate student and she decided to put me up for adoption.', 'She felt very strongly that I should be adopted by college graduates so everything was all set', 'for me to be adopted at birth by a lawyer and his wife.', 'Except that when I popped out they decided at the last minute that they really wanted', 'a girl.', 'So my parents who were on a waiting list got a call in the middle of the night asking,', "we've got an unexpected baby boy.", 'Do you want him?', 'They said, of course.', 'My biological mother found out later that my mother had never graduated from college and', 'that my father had never graduated from high school.', 'She refused to sign the final adoption papers.', 'She only relented a few months later when my parents promised that I would go to college.', 'This was the start in my life.', 'And 17 years later I did go to college but I naively chose a college that was almost as expensive', "as Stanford and all of my working class parents' savings were being spent on my college tuition.", "After six months I couldn't see the value in it.", 'I had no idea what I wanted to do with my life and no idea how college was going to help', 'me figure it out.', 'And here I was spending all the money my parents had saved their entire life.', 'So I decided to drop out and trust that it would all work out okay.', 'It was pretty scary at the time but looking back it was one of the best decisions I ever', 'made.', "The minute I dropped out I could stop taking the required classes that didn't interest", 'me and begin dropping in on the ones that looked far more interesting.', "It wasn't all romantic.", "I didn't have a dorm room so I slept on the floor in friends rooms.", 'I returned Coke bottles for the five cent deposits to buy food with and I would walk the seven', 'miles across town every Sunday night to get one good meal a week at the Hari Krishna temple.', 'I loved it.', 'And much of what I stumbled into by following my curiosity and intuition turned out to', 'be priceless later on.', 'Let me give you one example.', 'Read college at that time offered perhaps the best calligraphy instruction in the country.', 'Throughout the campus every poster every label on every drawer was beautifully hand', 'calligraphed.', "Because I had dropped out and didn't have to take the normal classes I decided to take", 'a calligraphy class to learn how to do this.', 'I learned about serif and san serif typefaces about varying the amount of space between', 'different letter combinations about what makes great typography great.', "It was beautiful, historical, artistically subtle in a way that science can't capture", 'and I found it fascinating.', 'None of this had even a hope of any practical application in my life.', '10 years later when we were designing the first Mac and Tosh computer it all came back', 'to me.', 'And we designed it all into the Mac.', 'It was the first computer with beautiful typography.', 'If I had never dropped in on that single course in college the Mac would have never had multiple', 'typefaces or proportionally spaced fonts.', "And since windows just copied the Mac it's likely that no personal computer would have", 'them.', 'If I had never dropped out I would have never dropped in on that calligraphy class and personal', 'computers might not have the wonderful typography that they do.', 'Of course it was impossible to connect the dots looking forward when I was in college.', 'But it was very very clear looking backwards 10 years later.', "Again you can't connect the dots looking forward.", 'You can only connect them looking backwards.', 'So you have to trust that the dots will somehow connect in your future.', 'You have to trust in something, your gut, destiny, life, karma, whatever.', 'Because believing that the dots will connect down the road will give you the confidence', 'to follow your heart even when it leads you off the well-worn path and that will make', 'all the difference.', 'My second story is about love and loss.', 'I was lucky.', 'I found what I loved to do early in life.', "Walsh and I started Apple in my parents' garage when I was 20.", 'We worked hard and in 10 years Apple had grown from just the two of us in a garage into', 'a $2 billion company with over 4,000 employees.', 'We just released our finest creation, the Macintosh a year earlier and I just turned 30.', 'And then I got fired.', 'How can you get fired from a company you started?', 'Well as Apple grew we hired someone who I thought was very talented to run the company with', 'me and for the first year or so things went well.', 'But then our visions of the future began to diverge and eventually we had a falling out.', 'When we did our board of directors sided with him and so at 30 I was out and very publicly', 'out.', 'But it had been the focus of my entire adult life was gone and it was devastating.', "I really didn't know what to do for a few months.", 'I felt that I had let the previous generation of entrepreneurs down that I had dropped', 'the baton as it was being passed to me.', 'I met with David Packard and Bob Nois and tried to apologize for screwing up so badly.', 'I was a very public failure and I even thought about running away from the valley.', 'But something slowly began to dawn on me.', 'I still loved what I did.', 'The turn of events at Apple had not changed that one bit.', "I'd been rejected but I was still in love.", 'And so I decided to start over.', "I didn't see it then but it turned out that getting fired from Apple was the best thing", 'that could have ever happened to me.', 'The heaviness of being successful was replaced by the lightness of being a beginner again,', 'less sure about everything.', 'It freed me to enter one of the most creative periods of my life.', 'During the next five years I started a company named Next, another company named Pixar,', 'and fell in love with an amazing woman who would become my wife.', "Pixar went on to create the world's first computer animated feature film, Toy Story, and", 'is now the most successful animation studio in the world.', 'In a remarkable turn of events, Apple bought Next and I returned to Apple and the technology', "we developed at Next is at the heart of Apple's current renaissance.", 'And Lorraine and I have a wonderful family together.', "I'm pretty sure none of this would have happened if I hadn't been fired from Apple.", 'It was awful tasting medicine but I guess the patient needed it.', "Sometimes life's going to hit you in the head with a brick.", "Don't lose faith.", "I'm convinced that the only thing that kept me going was that I loved what I did.", "You've got to find what you love and that is as true for work as it is for your lovers.", 'Your work is going to fill a large part of your life and the only way to be truly satisfied', 'is to do what you believe is great work and the only way to do great work is to love what', 'you do.', "If you haven't found it yet, keep looking and don't settle.", "As with all matters of the heart, you'll know when you find it.", 'And like any great relationship, it just gets better and better as the years roll on.', "You'll keep looking.", "Don't settle.", 'My third story is about death.', 'When I was 17, I read a quote that went something like, if you live each day as if it was your', "last, someday you'll most certainly be right.", 'It made an impression on me.', "And since then, for the past 33 years, I've looked in the mirror every morning and asked myself,", 'if today were the last day of my life, what I want to do, what I am about to do today.', 'And whenever the answer has been no for too many days in a row, I know I need to change', 'something.', "Remembering that all be dead soon is the most important tool I've ever encountered", 'to help me make the big choices in life.', 'As almost everything, all external expectations, all pride, all fear of embarrassment or failure,', 'these things just fall away in the face of death, leaving only what is truly important.', 'Remembering that you are going to die is the best way I know to avoid the trap of thinking', 'you have something to lose.', 'You are already naked.', 'There is no reason not to follow your heart.', 'About a year ago, I was diagnosed with cancer.', 'I had a scan at 7.30 in the morning and it clearly showed a tumor on my pancreas.', "I didn't even know what a pancreas was.", 'The doctors told me this was almost certainly a type of cancer that is incurable and that', 'I should expect to live no longer than three to six months.', "My doctor advised me to go home and get my affairs in order, which is doctor's code for", 'prepare to die.', 'It means to try and tell your kids everything.', "You thought you'd have the next 10 years to tell them in just a few months.", 'It means to make sure everything is buttoned up so that it will be as easy as possible', 'for your family.', 'It means to say your goodbyes.', 'I live with that diagnosis all day.', 'Later that evening, I had a biopsy where they stuck an endoscope down my throat, threw', 'my stomach into my intestines, put a needle into my pancreas and got a few cells from', 'the tumor.', 'I was sedated, but my wife who was there told me that when they viewed the cells under', 'a microscope, the doctors started crying because it turned out to be a very rare form of', 'pancreatic cancer that is curable with surgery.', "I had the surgery and thankfully I'm fine now.", "This was the closest I've been to facing death and I hope it's the closest I get for a", 'few more decades.', 'Having lived through it, I can now say this to you with a bit more certainty than when', 'death was a useful but purely intellectual concept.', 'No one wants to die.', "Even people who want to go to heaven don't want to die to get there.", 'And yet death is the destination we all share.', 'No one has ever escaped it.', 'And that is as it should be because death is very likely the single best invention of', 'life.', "Its life's change agent, it clears out the old to make way for the new.", 'Right now the new is you.', 'But someday not too long from now you will gradually become the old and be cleared away.', "Sorry to be so dramatic, but it's quite true.", "Your time is limited so don't waste it living someone else's life.", "Don't be trapped by dogma which is living with the results of other people's thinking.", "Don't let the noise of others opinions drown out your own inner voice.", 'And most important have the courage to follow your heart and intuition.', 'They somehow already know what you truly want to become.', 'Everything else is secondary.', 'When I was young there was an amazing publication called The Whole Earth Catalog which was one of the', 'Bibles of my generation.', 'It was created by a fellow named Sturt Brand not far from here in Menlo Park and he brought', 'it to life with his poetic touch.', 'This was in the late 60s before personal computers and desktop publishing so it was all made', 'with typewriters, scissors and Polaroid cameras.', 'It was sort of like Google and paperback form 35 years before Google came along.', 'It was idealistic, overflowing with neat tools and great notions.', 'Sturt and his team put out several issues of the Whole Earth Catalog and then when it had', 'run its course they put out a final issue.', 'It was the mid 1970s and I was your age.', 'On the back cover of their final issue was a photograph of an early morning country', 'road.', 'The kind you might find yourself hitchhiking on if you were so adventurous.', 'Beneath it were the words, stay hungry, stay foolish.', 'It was their farewell message as they signed off.', 'Stay hungry, stay foolish.', 'And I have always wished that for myself.', 'And now as you graduate to begin a new, I wish that for you.', 'Stay hungry, stay foolish.', 'Thank you all very much.'], 'model': 'text-embedding-3-small', 'encoding_format': 'base64'}}
+2025-07-25 10:08:54,893 - DEBUG - Sending HTTP Request: POST https://api.openai.com/v1/embeddings
+2025-07-25 10:08:54,894 - DEBUG - connect_tcp.started host='api.openai.com' port=443 local_address=None timeout=5.0 socket_options=None
+2025-07-25 10:08:54,917 - DEBUG - connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x00000213D21B8110>
+2025-07-25 10:08:54,918 - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x00000213C3DB94D0> server_hostname='api.openai.com' timeout=5.0
+2025-07-25 10:08:54,950 - DEBUG - start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x00000213D2112DB0>
+2025-07-25 10:08:54,951 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-07-25 10:08:54,953 - DEBUG - send_request_headers.complete
+2025-07-25 10:08:54,954 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-07-25 10:08:54,954 - DEBUG - send_request_body.complete
+2025-07-25 10:08:54,955 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-07-25 10:08:56,442 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Fri, 25 Jul 2025 17:08:56 GMT'), (b'Content-Type', b'application/json'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'access-control-allow-origin', b'*'), (b'access-control-expose-headers', b'X-Request-ID'), (b'openai-model', b'text-embedding-3-small'), (b'openai-organization', b'kaldi-5nexd7'), (b'openai-processing-ms', b'201'), (b'openai-project', b'proj_yYrsoz6ij2kWdvkUhuyxuubd'), (b'openai-version', b'2020-10-01'), (b'strict-transport-security', b'max-age=31536000; includeSubDomains; preload'), (b'via', b'envoy-router-84549dd555-4lv29'), (b'x-envoy-upstream-service-time', b'203'), (b'x-ratelimit-limit-requests', b'10000'), (b'x-ratelimit-limit-tokens', b'10000000'), (b'x-ratelimit-remaining-requests', b'9999'), (b'x-ratelimit-remaining-tokens', b'9997080'), (b'x-ratelimit-reset-requests', b'6ms'), (b'x-ratelimit-reset-tokens', b'17ms'), (b'x-request-id', b'req_5d971eed38750bd91a0aa8001de1f120'), (b'cf-cache-status', b'DYNAMIC'), (b'Set-Cookie', b'__cf_bm=YT9SJ2HrxQsL9ezUhwBp1omtXlrPldzWhaxl9yOlWAM-1753463336-1.0.1.1-lPupMHd3kPtjlCD3v7O6nO0NENi3Op4t26CDJHU0kX7sLf.UO.Rn0YDG5RGE2glw62WTlxdUfObQbWkg3k3bz6MvQDEYZf15UOf5X.zUTvY; path=/; expires=Fri, 25-Jul-25 17:38:56 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), (b'X-Content-Type-Options', b'nosniff'), (b'Set-Cookie', b'_cfuvid=5J47rRsX0IL7aGyvBXU99eLawKYpuNE929BcEfABI7s-1753463336435-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), (b'Server', b'cloudflare'), (b'CF-RAY', b'964d43139dcc90a7-KHI'), (b'Content-Encoding', b'gzip'), (b'alt-svc', b'h3=":443"; ma=86400')])
+2025-07-25 10:08:56,444 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-07-25 10:08:56,444 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-07-25 10:08:58,088 - DEBUG - receive_response_body.complete
+2025-07-25 10:08:58,088 - DEBUG - response_closed.started
+2025-07-25 10:08:58,089 - DEBUG - response_closed.complete
+2025-07-25 10:08:58,090 - DEBUG - HTTP Response: POST https://api.openai.com/v1/embeddings "200 OK" Headers([('date', 'Fri, 25 Jul 2025 17:08:56 GMT'), ('content-type', 'application/json'), ('transfer-encoding', 'chunked'), ('connection', 'keep-alive'), ('access-control-allow-origin', '*'), ('access-control-expose-headers', 'X-Request-ID'), ('openai-model', 'text-embedding-3-small'), ('openai-organization', 'kaldi-5nexd7'), ('openai-processing-ms', '201'), ('openai-project', 'proj_yYrsoz6ij2kWdvkUhuyxuubd'), ('openai-version', '2020-10-01'), ('strict-transport-security', 'max-age=31536000; includeSubDomains; preload'), ('via', 'envoy-router-84549dd555-4lv29'), ('x-envoy-upstream-service-time', '203'), ('x-ratelimit-limit-requests', '10000'), ('x-ratelimit-limit-tokens', '10000000'), ('x-ratelimit-remaining-requests', '9999'), ('x-ratelimit-remaining-tokens', '9997080'), ('x-ratelimit-reset-requests', '6ms'), ('x-ratelimit-reset-tokens', '17ms'), ('x-request-id', 'req_5d971eed38750bd91a0aa8001de1f120'), ('cf-cache-status', 'DYNAMIC'), ('set-cookie', '__cf_bm=YT9SJ2HrxQsL9ezUhwBp1omtXlrPldzWhaxl9yOlWAM-1753463336-1.0.1.1-lPupMHd3kPtjlCD3v7O6nO0NENi3Op4t26CDJHU0kX7sLf.UO.Rn0YDG5RGE2glw62WTlxdUfObQbWkg3k3bz6MvQDEYZf15UOf5X.zUTvY; path=/; expires=Fri, 25-Jul-25 17:38:56 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), ('x-content-type-options', 'nosniff'), ('set-cookie', '_cfuvid=5J47rRsX0IL7aGyvBXU99eLawKYpuNE929BcEfABI7s-1753463336435-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), ('server', 'cloudflare'), ('cf-ray', '964d43139dcc90a7-KHI'), ('content-encoding', 'gzip'), ('alt-svc', 'h3=":443"; ma=86400')])
+2025-07-25 10:08:58,092 - DEBUG - request_id: req_5d971eed38750bd91a0aa8001de1f120
+2025-07-25 10:09:06,794 - INFO - Store chunks result: True
+2025-07-25 10:09:08,590 - INFO - Chunks exist in database: False
+2025-07-25 10:09:08,591 - INFO - 
+==================================================
+2025-07-25 10:09:08,591 - INFO - STEP 3: PROCESSING SECONDARY FILE
+2025-07-25 10:09:08,591 - INFO - ==================================================
+2025-07-25 10:09:08,592 - INFO - 
+==================================================
+2025-07-25 10:09:08,592 - INFO - FILE INFO: SECONDARY
+2025-07-25 10:09:08,592 - INFO - ==================================================
+2025-07-25 10:09:08,593 - INFO - File path: testing files\ss.mp3
+2025-07-25 10:09:08,593 - INFO - File exists: True
+2025-07-25 10:09:08,593 - INFO - File size: 2369455 bytes
+2025-07-25 10:09:08,593 - INFO - File extension: .mp3
+2025-07-25 10:09:08,594 - INFO - File validation: PASS
+2025-07-25 10:09:08,635 - INFO - File info: {
+  "path": "testing files\\ss.mp3",
+  "name": "ss.mp3",
+  "extension": ".mp3",
+  "size_mb": 2.259688377380371,
+  "is_audio": true,
+  "is_video": false,
+  "duration": 148.06,
+  "sample_rate": 0,
+  "channels": 0,
+  "codec": "unknown"
+}
+2025-07-25 10:09:08,636 - INFO - 
+==================================================
+2025-07-25 10:09:08,636 - INFO - AUDIO PREPARATION: SECONDARY
+2025-07-25 10:09:08,637 - INFO - ==================================================
+2025-07-25 10:09:08,637 - INFO - Preparing audio for: testing files\ss.mp3
+2025-07-25 10:09:08,819 - INFO - Audio prepared successfully: testing files\ss_fast.wav
+2025-07-25 10:09:08,819 - INFO - Prepared audio size: 4737680 bytes
+2025-07-25 10:09:08,819 - INFO - 
+==================================================
+2025-07-25 10:09:08,820 - INFO - TRANSCRIPTION: SECONDARY
+2025-07-25 10:09:08,820 - INFO - ==================================================
+2025-07-25 10:09:08,820 - INFO - Model: base
+2025-07-25 10:09:08,820 - INFO - Language: auto
+2025-07-25 10:09:08,820 - INFO - Audio path: testing files\ss_fast.wav
+2025-07-25 10:09:23,466 - INFO - Transcription completed in 14.65 seconds
+2025-07-25 10:09:23,466 - INFO - Success: True
+2025-07-25 10:09:23,466 - INFO - Language detected: en
+2025-07-25 10:09:23,467 - INFO - Confidence: 91.997
+2025-07-25 10:09:23,467 - INFO - Text length: 2031 characters
+2025-07-25 10:09:23,467 - INFO - Number of segments: 25
+2025-07-25 10:09:23,467 - INFO - 
+First 5 segments:
+2025-07-25 10:09:23,468 - INFO -   Segment 1: 0.00s - 2.00s
+2025-07-25 10:09:23,468 - INFO -     Text: ' Don't lose faith.'
+2025-07-25 10:09:23,468 - INFO -   Segment 2: 2.00s - 6.00s
+2025-07-25 10:09:23,468 - INFO -     Text: ' I'm convinced that the only thing that kept me going was that I loved what I did.'
+2025-07-25 10:09:23,469 - INFO -   Segment 3: 6.00s - 12.00s
+2025-07-25 10:09:23,469 - INFO -     Text: ' You've got to find what you love, and that is as true for work as it is for your lovers.'
+2025-07-25 10:09:23,469 - INFO -   Segment 4: 12.00s - 19.00s
+2025-07-25 10:09:23,470 - INFO -     Text: ' Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work.'
+2025-07-25 10:09:23,470 - INFO -   Segment 5: 19.00s - 23.00s
+2025-07-25 10:09:23,470 - INFO -     Text: ' And the only way to do great work is to love what you do.'
+2025-07-25 10:09:23,470 - INFO -   ... and 20 more segments
+2025-07-25 10:09:23,471 - INFO - 
+==================================================
+2025-07-25 10:09:23,471 - INFO - CHUNKING SECONDARY TEXT
+2025-07-25 10:09:23,472 - INFO - ==================================================
+2025-07-25 10:09:23,472 - INFO - Chunking config: {
+  "segment_based": true,
+  "max_segment_length": 500,
+  "min_chunk_size": 50,
+  "max_chunk_size": 1000,
+  "overlap_size": 200,
+  "preserve_timestamps": true,
+  "preserve_context": true
+}
+2025-07-25 10:09:23,473 - INFO - Generated 25 chunks
+2025-07-25 10:09:23,473 - INFO - 
+Chunk 1:
+2025-07-25 10:09:23,473 - INFO -   Text: 'Don't lose faith.'
+2025-07-25 10:09:23,474 - INFO -   Start time: 0.00s
+2025-07-25 10:09:23,474 - INFO -   End time: 2.00s
+2025-07-25 10:09:23,474 - INFO -   Segment index: 0
+2025-07-25 10:09:23,474 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,474 - INFO -   Text length: 17 characters
+2025-07-25 10:09:23,474 - INFO - 
+Chunk 2:
+2025-07-25 10:09:23,475 - INFO -   Text: 'I'm convinced that the only thing that kept me going was that I loved what I did.'
+2025-07-25 10:09:23,475 - INFO -   Start time: 2.00s
+2025-07-25 10:09:23,475 - INFO -   End time: 6.00s
+2025-07-25 10:09:23,475 - INFO -   Segment index: 1
+2025-07-25 10:09:23,475 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,476 - INFO -   Text length: 81 characters
+2025-07-25 10:09:23,476 - INFO - 
+Chunk 3:
+2025-07-25 10:09:23,476 - INFO -   Text: 'You've got to find what you love, and that is as true for work as it is for your lovers.'
+2025-07-25 10:09:23,476 - INFO -   Start time: 6.00s
+2025-07-25 10:09:23,476 - INFO -   End time: 12.00s
+2025-07-25 10:09:23,477 - INFO -   Segment index: 2
+2025-07-25 10:09:23,477 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,477 - INFO -   Text length: 88 characters
+2025-07-25 10:09:23,477 - INFO - 
+Chunk 4:
+2025-07-25 10:09:23,477 - INFO -   Text: 'Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work.'
+2025-07-25 10:09:23,477 - INFO -   Start time: 12.00s
+2025-07-25 10:09:23,478 - INFO -   End time: 19.00s
+2025-07-25 10:09:23,478 - INFO -   Segment index: 3
+2025-07-25 10:09:23,478 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,478 - INFO -   Text length: 133 characters
+2025-07-25 10:09:23,478 - INFO - 
+Chunk 5:
+2025-07-25 10:09:23,478 - INFO -   Text: 'And the only way to do great work is to love what you do.'
+2025-07-25 10:09:23,479 - INFO -   Start time: 19.00s
+2025-07-25 10:09:23,479 - INFO -   End time: 23.00s
+2025-07-25 10:09:23,479 - INFO -   Segment index: 4
+2025-07-25 10:09:23,479 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,479 - INFO -   Text length: 57 characters
+2025-07-25 10:09:23,480 - INFO - 
+Chunk 6:
+2025-07-25 10:09:23,480 - INFO -   Text: 'If you haven't found it yet, keep looking and don't settle.'
+2025-07-25 10:09:23,480 - INFO -   Start time: 23.00s
+2025-07-25 10:09:23,480 - INFO -   End time: 27.00s
+2025-07-25 10:09:23,480 - INFO -   Segment index: 5
+2025-07-25 10:09:23,480 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,480 - INFO -   Text length: 59 characters
+2025-07-25 10:09:23,481 - INFO - 
+Chunk 7:
+2025-07-25 10:09:23,481 - INFO -   Text: 'As with all matters of the heart, you'll know when you find it.'
+2025-07-25 10:09:23,481 - INFO -   Start time: 27.00s
+2025-07-25 10:09:23,481 - INFO -   End time: 31.00s
+2025-07-25 10:09:23,481 - INFO -   Segment index: 6
+2025-07-25 10:09:23,482 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,482 - INFO -   Text length: 63 characters
+2025-07-25 10:09:23,482 - INFO - 
+Chunk 8:
+2025-07-25 10:09:23,482 - INFO -   Text: 'And like any great relationship, it just gets better and better as the years roll on.'
+2025-07-25 10:09:23,482 - INFO -   Start time: 31.00s
+2025-07-25 10:09:23,482 - INFO -   End time: 36.00s
+2025-07-25 10:09:23,482 - INFO -   Segment index: 7
+2025-07-25 10:09:23,483 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,483 - INFO -   Text length: 85 characters
+2025-07-25 10:09:23,483 - INFO - 
+Chunk 9:
+2025-07-25 10:09:23,483 - INFO -   Text: 'So keep looking. Don't settle.'
+2025-07-25 10:09:23,483 - INFO -   Start time: 36.00s
+2025-07-25 10:09:23,483 - INFO -   End time: 39.00s
+2025-07-25 10:09:23,484 - INFO -   Segment index: 8
+2025-07-25 10:09:23,484 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,484 - INFO -   Text length: 30 characters
+2025-07-25 10:09:23,484 - INFO - 
+Chunk 10:
+2025-07-25 10:09:23,484 - INFO -   Text: 'My third story is about death.'
+2025-07-25 10:09:23,485 - INFO -   Start time: 49.00s
+2025-07-25 10:09:23,485 - INFO -   End time: 52.00s
+2025-07-25 10:09:23,485 - INFO -   Segment index: 9
+2025-07-25 10:09:23,485 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,485 - INFO -   Text length: 30 characters
+2025-07-25 10:09:23,485 - INFO - 
+Chunk 11:
+2025-07-25 10:09:23,486 - INFO -   Text: 'When I was 17, I read a quote that went something like,'
+2025-07-25 10:09:23,486 - INFO -   Start time: 53.00s
+2025-07-25 10:09:23,486 - INFO -   End time: 57.00s
+2025-07-25 10:09:23,486 - INFO -   Segment index: 10
+2025-07-25 10:09:23,486 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,486 - INFO -   Text length: 55 characters
+2025-07-25 10:09:23,487 - INFO - 
+Chunk 12:
+2025-07-25 10:09:23,487 - INFO -   Text: 'if you live each day as if it was your last, someday you'll most certainly be right.'
+2025-07-25 10:09:23,488 - INFO -   Start time: 57.00s
+2025-07-25 10:09:23,488 - INFO -   End time: 63.00s
+2025-07-25 10:09:23,488 - INFO -   Segment index: 11
+2025-07-25 10:09:23,489 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,489 - INFO -   Text length: 84 characters
+2025-07-25 10:09:23,489 - INFO - 
+Chunk 13:
+2025-07-25 10:09:23,489 - INFO -   Text: 'It made an impression on me, and since then, for the past 33 years, I've looked in the mirror every morning and asked myself,'
+2025-07-25 10:09:23,489 - INFO -   Start time: 65.00s
+2025-07-25 10:09:23,489 - INFO -   End time: 72.00s
+2025-07-25 10:09:23,490 - INFO -   Segment index: 12
+2025-07-25 10:09:23,490 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,490 - INFO -   Text length: 125 characters
+2025-07-25 10:09:23,490 - INFO - 
+Chunk 14:
+2025-07-25 10:09:23,490 - INFO -   Text: 'if today were the last day of my life, what I want to do, what I am about to do today.'
+2025-07-25 10:09:23,490 - INFO -   Start time: 72.00s
+2025-07-25 10:09:23,491 - INFO -   End time: 78.00s
+2025-07-25 10:09:23,491 - INFO -   Segment index: 13
+2025-07-25 10:09:23,491 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,491 - INFO -   Text length: 86 characters
+2025-07-25 10:09:23,491 - INFO - 
+Chunk 15:
+2025-07-25 10:09:23,491 - INFO -   Text: 'And whenever the answer has been no for too many days in a row, I know I need to change something.'
+2025-07-25 10:09:23,492 - INFO -   Start time: 78.00s
+2025-07-25 10:09:23,492 - INFO -   End time: 84.00s
+2025-07-25 10:09:23,492 - INFO -   Segment index: 14
+2025-07-25 10:09:23,492 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,492 - INFO -   Text length: 98 characters
+2025-07-25 10:09:23,492 - INFO - 
+Chunk 16:
+2025-07-25 10:09:23,492 - INFO -   Text: 'Remembering that all be dead soon is the most important tool I've ever encountered to help me make the big choices in life.'
+2025-07-25 10:09:23,493 - INFO -   Start time: 84.00s
+2025-07-25 10:09:23,493 - INFO -   End time: 91.00s
+2025-07-25 10:09:23,493 - INFO -   Segment index: 15
+2025-07-25 10:09:23,493 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,493 - INFO -   Text length: 123 characters
+2025-07-25 10:09:23,493 - INFO - 
+Chunk 17:
+2025-07-25 10:09:23,493 - INFO -   Text: 'Because almost everything, all external expectations, all pride, all fear of embarrassment or failure,'
+2025-07-25 10:09:23,494 - INFO -   Start time: 91.00s
+2025-07-25 10:09:23,494 - INFO -   End time: 99.00s
+2025-07-25 10:09:23,494 - INFO -   Segment index: 16
+2025-07-25 10:09:23,494 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,494 - INFO -   Text length: 102 characters
+2025-07-25 10:09:23,494 - INFO - 
+Chunk 18:
+2025-07-25 10:09:23,494 - INFO -   Text: 'these things just fall away in the face of death, leaving only what is truly important.'
+2025-07-25 10:09:23,495 - INFO -   Start time: 99.00s
+2025-07-25 10:09:23,495 - INFO -   End time: 104.00s
+2025-07-25 10:09:23,495 - INFO -   Segment index: 17
+2025-07-25 10:09:23,495 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,495 - INFO -   Text length: 87 characters
+2025-07-25 10:09:23,495 - INFO - 
+Chunk 19:
+2025-07-25 10:09:23,495 - INFO -   Text: 'Remembering that you are going to die is the best way I know to avoid the trap of thinking you have something to lose.'
+2025-07-25 10:09:23,496 - INFO -   Start time: 105.00s
+2025-07-25 10:09:23,496 - INFO -   End time: 112.00s
+2025-07-25 10:09:23,496 - INFO -   Segment index: 18
+2025-07-25 10:09:23,496 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,496 - INFO -   Text length: 118 characters
+2025-07-25 10:09:23,496 - INFO - 
+Chunk 20:
+2025-07-25 10:09:23,497 - INFO -   Text: 'You are already naked. There is no reason not to follow your heart.'
+2025-07-25 10:09:23,497 - INFO -   Start time: 112.00s
+2025-07-25 10:09:23,497 - INFO -   End time: 117.00s
+2025-07-25 10:09:23,497 - INFO -   Segment index: 19
+2025-07-25 10:09:23,497 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,497 - INFO -   Text length: 67 characters
+2025-07-25 10:09:23,497 - INFO - 
+Chunk 21:
+2025-07-25 10:09:23,497 - INFO -   Text: 'About a year ago, I was diagnosed with cancer.'
+2025-07-25 10:09:23,498 - INFO -   Start time: 117.00s
+2025-07-25 10:09:23,498 - INFO -   End time: 122.00s
+2025-07-25 10:09:23,498 - INFO -   Segment index: 20
+2025-07-25 10:09:23,498 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,498 - INFO -   Text length: 46 characters
+2025-07-25 10:09:23,498 - INFO - 
+Chunk 22:
+2025-07-25 10:09:23,498 - INFO -   Text: 'I had a scan at 7.30 in the morning and it clearly showed a tumor on my pancreas.'
+2025-07-25 10:09:23,499 - INFO -   Start time: 122.00s
+2025-07-25 10:09:23,499 - INFO -   End time: 127.00s
+2025-07-25 10:09:23,499 - INFO -   Segment index: 21
+2025-07-25 10:09:23,499 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,499 - INFO -   Text length: 81 characters
+2025-07-25 10:09:23,499 - INFO - 
+Chunk 23:
+2025-07-25 10:09:23,499 - INFO -   Text: 'I didn't even know what a pancreas was.'
+2025-07-25 10:09:23,500 - INFO -   Start time: 127.00s
+2025-07-25 10:09:23,500 - INFO -   End time: 130.00s
+2025-07-25 10:09:23,500 - INFO -   Segment index: 22
+2025-07-25 10:09:23,500 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,500 - INFO -   Text length: 39 characters
+2025-07-25 10:09:23,500 - INFO - 
+Chunk 24:
+2025-07-25 10:09:23,501 - INFO -   Text: 'The doctors told me this was almost certainly a type of cancer that is incurable and that I should expect to live no longer than three to six months.'
+2025-07-25 10:09:23,501 - INFO -   Start time: 130.00s
+2025-07-25 10:09:23,501 - INFO -   End time: 139.00s
+2025-07-25 10:09:23,501 - INFO -   Segment index: 23
+2025-07-25 10:09:23,502 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,502 - INFO -   Text length: 149 characters
+2025-07-25 10:09:23,502 - INFO - 
+Chunk 25:
+2025-07-25 10:09:23,502 - INFO -   Text: 'My doctor advised me to go home and get my affairs in order, which is doctor's code for prepare to die.'
+2025-07-25 10:09:23,502 - INFO -   Start time: 139.00s
+2025-07-25 10:09:23,502 - INFO -   End time: 147.00s
+2025-07-25 10:09:23,503 - INFO -   Segment index: 24
+2025-07-25 10:09:23,503 - INFO -   Chunk type: segment
+2025-07-25 10:09:23,503 - INFO -   Text length: 103 characters
+2025-07-25 10:09:23,503 - INFO - 
+==================================================
+2025-07-25 10:09:23,503 - INFO - SEARCHING FOR CONTENT MATCHES
+2025-07-25 10:09:23,503 - INFO - ==================================================
+2025-07-25 10:09:23,504 - INFO - Threshold: 0.7
+2025-07-25 10:09:23,504 - INFO - Secondary text: ' Don't lose faith. I'm convinced that the only thing that kept me going was that I loved what I did. You've got to find what you love, and that is as true for work as it is for your lovers. Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work. And the only way to do great work is to love what you do. If you haven't found it yet, keep looking and don't settle. As with all matters of the heart, you'll know when you find it. And like any great relationship, it just gets better and better as the years roll on. So keep looking. Don't settle. My third story is about death. When I was 17, I read a quote that went something like, if you live each day as if it was your last, someday you'll most certainly be right. It made an impression on me, and since then, for the past 33 years, I've looked in the mirror every morning and asked myself, if today were the last day of my life, what I want to do, what I am about to do today. And whenever the answer has been no for too many days in a row, I know I need to change something. Remembering that all be dead soon is the most important tool I've ever encountered to help me make the big choices in life. Because almost everything, all external expectations, all pride, all fear of embarrassment or failure, these things just fall away in the face of death, leaving only what is truly important. Remembering that you are going to die is the best way I know to avoid the trap of thinking you have something to lose. You are already naked. There is no reason not to follow your heart. About a year ago, I was diagnosed with cancer. I had a scan at 7.30 in the morning and it clearly showed a tumor on my pancreas. I didn't even know what a pancreas was. The doctors told me this was almost certainly a type of cancer that is incurable and that I should expect to live no longer than three to six months. My doctor advised me to go home and get my affairs in order, which is doctor's code for prepare to die.'
+2025-07-25 10:09:23,508 - DEBUG - Request options: {'method': 'post', 'url': '/embeddings', 'files': None, 'idempotency_key': 'stainless-python-retry-72af93e5-9705-4751-9dcf-7ad219d45eb7', 'post_parser': <function Embeddings.create.<locals>.parser at 0x00000213D21A7D80>, 'json_data': {'input': ["Don't lose faith.", "I'm convinced that the only thing that kept me going was that I loved what I did.", "You've got to find what you love, and that is as true for work as it is for your lovers.", 'Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work.', 'And the only way to do great work is to love what you do.', "If you haven't found it yet, keep looking and don't settle.", "As with all matters of the heart, you'll know when you find it.", 'And like any great relationship, it just gets better and better as the years roll on.', "So keep looking. Don't settle.", 'My third story is about death.', 'When I was 17, I read a quote that went something like,', "if you live each day as if it was your last, someday you'll most certainly be right.", "It made an impression on me, and since then, for the past 33 years, I've looked in the mirror every morning and asked myself,", 'if today were the last day of my life, what I want to do, what I am about to do today.', 'And whenever the answer has been no for too many days in a row, I know I need to change something.', "Remembering that all be dead soon is the most important tool I've ever encountered to help me make the big choices in life.", 'Because almost everything, all external expectations, all pride, all fear of embarrassment or failure,', 'these things just fall away in the face of death, leaving only what is truly important.', 'Remembering that you are going to die is the best way I know to avoid the trap of thinking you have something to lose.', 'You are already naked. There is no reason not to follow your heart.', 'About a year ago, I was diagnosed with cancer.', 'I had a scan at 7.30 in the morning and it clearly showed a tumor on my pancreas.', "I didn't even know what a pancreas was.", 'The doctors told me this was almost certainly a type of cancer that is incurable and that I should expect to live no longer than three to six months.', "My doctor advised me to go home and get my affairs in order, which is doctor's code for prepare to die."], 'model': 'text-embedding-3-small', 'encoding_format': 'base64'}}
+2025-07-25 10:09:23,510 - DEBUG - Sending HTTP Request: POST https://api.openai.com/v1/embeddings
+2025-07-25 10:09:23,510 - DEBUG - close.started
+2025-07-25 10:09:23,510 - DEBUG - close.complete
+2025-07-25 10:09:23,510 - DEBUG - connect_tcp.started host='api.openai.com' port=443 local_address=None timeout=5.0 socket_options=None
+2025-07-25 10:09:23,929 - DEBUG - connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x00000213D21B9F70>
+2025-07-25 10:09:23,930 - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x00000213C3DB94D0> server_hostname='api.openai.com' timeout=5.0
+2025-07-25 10:09:23,965 - DEBUG - start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x00000213D21BA030>
+2025-07-25 10:09:23,966 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-07-25 10:09:23,969 - DEBUG - send_request_headers.complete
+2025-07-25 10:09:23,970 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-07-25 10:09:23,971 - DEBUG - send_request_body.complete
+2025-07-25 10:09:23,972 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-07-25 10:09:25,168 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Fri, 25 Jul 2025 17:09:25 GMT'), (b'Content-Type', b'application/json'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'access-control-allow-origin', b'*'), (b'access-control-expose-headers', b'X-Request-ID'), (b'openai-model', b'text-embedding-3-small'), (b'openai-organization', b'kaldi-5nexd7'), (b'openai-processing-ms', b'188'), (b'openai-project', b'proj_yYrsoz6ij2kWdvkUhuyxuubd'), (b'openai-version', b'2020-10-01'), (b'strict-transport-security', b'max-age=31536000; includeSubDomains; preload'), (b'via', b'envoy-router-6b9db687b4-7l9mg'), (b'x-envoy-upstream-service-time', b'191'), (b'x-ratelimit-limit-requests', b'10000'), (b'x-ratelimit-limit-tokens', b'10000000'), (b'x-ratelimit-remaining-requests', b'9999'), (b'x-ratelimit-remaining-tokens', b'9999499'), (b'x-ratelimit-reset-requests', b'6ms'), (b'x-ratelimit-reset-tokens', b'3ms'), (b'x-request-id', b'req_8db0dcb2e455e5888c25b84d8b72f3ca'), (b'cf-cache-status', b'DYNAMIC'), (b'X-Content-Type-Options', b'nosniff'), (b'Server', b'cloudflare'), (b'CF-RAY', b'964d43c8e86390ad-KHI'), (b'Content-Encoding', b'gzip'), (b'alt-svc', b'h3=":443"; ma=86400')])
+2025-07-25 10:09:25,172 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-07-25 10:09:25,173 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-07-25 10:09:25,901 - DEBUG - receive_response_body.complete
+2025-07-25 10:09:25,901 - DEBUG - response_closed.started
+2025-07-25 10:09:25,902 - DEBUG - response_closed.complete
+2025-07-25 10:09:25,902 - DEBUG - HTTP Response: POST https://api.openai.com/v1/embeddings "200 OK" Headers({'date': 'Fri, 25 Jul 2025 17:09:25 GMT', 'content-type': 'application/json', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'access-control-allow-origin': '*', 'access-control-expose-headers': 'X-Request-ID', 'openai-model': 'text-embedding-3-small', 'openai-organization': 'kaldi-5nexd7', 'openai-processing-ms': '188', 'openai-project': 'proj_yYrsoz6ij2kWdvkUhuyxuubd', 'openai-version': '2020-10-01', 'strict-transport-security': 'max-age=31536000; includeSubDomains; preload', 'via': 'envoy-router-6b9db687b4-7l9mg', 'x-envoy-upstream-service-time': '191', 'x-ratelimit-limit-requests': '10000', 'x-ratelimit-limit-tokens': '10000000', 'x-ratelimit-remaining-requests': '9999', 'x-ratelimit-remaining-tokens': '9999499', 'x-ratelimit-reset-requests': '6ms', 'x-ratelimit-reset-tokens': '3ms', 'x-request-id': 'req_8db0dcb2e455e5888c25b84d8b72f3ca', 'cf-cache-status': 'DYNAMIC', 'x-content-type-options': 'nosniff', 'server': 'cloudflare', 'cf-ray': '964d43c8e86390ad-KHI', 'content-encoding': 'gzip', 'alt-svc': 'h3=":443"; ma=86400'})
+2025-07-25 10:09:25,903 - DEBUG - request_id: req_8db0dcb2e455e5888c25b84d8b72f3ca
+2025-07-25 10:09:37,539 - INFO - Search result: {
+  "success": true,
+  "matches": [
+    {
+      "start_time": 479.84,
+      "end_time": 501.2,
+      "text": "Don't lose faith.",
+      "confidence": 1.0001049,
+      "segment_index": 115.0
+    },
+    {
+      "start_time": 502.47999999999996,
+      "end_time": 515.52,
+      "text": "If you haven't found it yet, keep looking and don't settle.",
+      "confidence": 1.00024796,
+      "segment_index": 121.0
+    },
+    {
+      "start_time": 520.0799999999999,
+      "end_time": 538.1999999999999,
+      "text": "My third story is about death.",
+      "confidence": 0.999412596,
+      "segment_index": 126.0
+    },
+    {
+      "start_time": 546.04,
+      "end_time": 562.3199999999999,
+      "text": "And since then, for the past 33 years, I've looked in the mirror every morning and asked myself,",
+      "confidence": 1.00028813,
+      "segment_index": 130.0
+    },
+    {
+      "start_time": 564.1999999999999,
+      "end_time": 568.12,
+      "text": "Remembering that all be dead soon is the most important tool I've ever encountered",
+      "confidence": 0.917308807,
+      "segment_index": 134.0
+    },
+    {
+      "start_time": 571.28,
+      "end_time": 589.36,
+      "text": "As almost everything, all external expectations, all pride, all fear of embarrassment or failure,",
+      "confidence": 0.999700665,
+      "segment_index": 136.0
+    },
+    {
+      "start_time": 597.3199999999999,
+      "end_time": 614.52,
+      "text": "About a year ago, I was diagnosed with cancer.",
+      "confidence": 1.0005312,
+      "segment_index": 142.0
+    },
+    {
+      "start_time": 619.0,
+      "end_time": 625.08,
+      "text": "My doctor advised me to go home and get my affairs in order, which is doctor's code for",
+      "confidence": 0.904120445,
+      "segment_index": 147.0
+    }
+  ],
+  "confidence": 0.941353262130435,
+  "found": true,
+  "total_matches": 8,
+  "search_text": "Don't lose faith. I'm convinced that the only thing that kept me going was that I loved what I did. You've got to find what you love, and that is as true for work as it is for your lovers. Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work. And the only way to do great work is to love what you do. If you haven't found it yet, keep looking and don't settle. As with all matters of the heart, you'll know when you find it. And like any great relationship, it just gets better and better as the years roll on. So keep looking. Don't settle. My third story is about death. When I was 17, I read a quote that went something like, if you live each day as if it was your last, someday you'll most certainly be right. It made an impression on me, and since then, for the past 33 years, I've looked in the mirror every morning and asked myself, if today were the last day of my life, what I want to do, what I am about to do today. And whenever the answer has been no for too many days in a row, I know I need to change something. Remembering that all be dead soon is the most important tool I've ever encountered to help me make the big choices in life. Because almost everything, all external expectations, all pride, all fear of embarrassment or failure, these things just fall away in the face of death, leaving only what is truly important. Remembering that you are going to die is the best way I know to avoid the trap of thinking you have something to lose. You are already naked. There is no reason not to follow your heart. About a year ago, I was diagnosed with cancer. I had a scan at 7.30 in the morning and it clearly showed a tumor on my pancreas. I didn't even know what a pancreas was. The doctors told me this was almost certainly a type of cancer that is incurable and that I should expect to live no longer than three to six months. My doctor advised me to go home and get my affairs in order, which is doctor's code for prepare to die.",
+  "adjusted_threshold": 0.3,
+  "processing_mode": "parallel_optimized"
+}
+2025-07-25 10:09:37,543 - INFO - 
+==================================================
+2025-07-25 10:09:37,543 - INFO - STEP 6: ANALYZING RESULTS
+2025-07-25 10:09:37,544 - INFO - ==================================================
+2025-07-25 10:09:37,544 - INFO - Found 8 matches
+2025-07-25 10:09:37,544 - INFO - 
+==================================================
+2025-07-25 10:09:37,544 - INFO - ANALYZING MISSING REGIONS
+2025-07-25 10:09:37,545 - INFO - ==================================================
+2025-07-25 10:09:37,545 - INFO - Gap found: 0.00s - 479.84s (duration: 479.84s)
+2025-07-25 10:09:37,545 - INFO - Gap found: 501.20s - 502.48s (duration: 1.28s)
+2025-07-25 10:09:37,545 - INFO - Gap found: 515.52s - 520.08s (duration: 4.56s)
+2025-07-25 10:09:37,546 - INFO - Gap found: 538.20s - 546.04s (duration: 7.84s)
+2025-07-25 10:09:37,546 - INFO - Gap found: 562.32s - 564.20s (duration: 1.88s)
+2025-07-25 10:09:37,546 - INFO - Gap found: 568.12s - 571.28s (duration: 3.16s)
+2025-07-25 10:09:37,546 - INFO - Gap found: 589.36s - 597.32s (duration: 7.96s)
+2025-07-25 10:09:37,547 - INFO - Gap found: 614.52s - 619.00s (duration: 4.48s)
+2025-07-25 10:09:37,547 - INFO - Final gap found: 625.08s - 855.96s (duration: 230.88s)
+2025-07-25 10:09:37,547 - INFO - 
+Analyzing content in gaps:
+2025-07-25 10:09:37,548 - INFO - 
+Gap 1: 0.00s - 479.84s
+2025-07-25 10:09:37,548 - INFO -   Segments in gap: 115
+2025-07-25 10:09:37,548 - INFO -     0.00s - 15.14s: ' I'm honored to be with you today for your commencement from one of the finest universities'
+2025-07-25 10:09:37,548 - INFO -     15.14s - 19.84s: ' in the world.'
+2025-07-25 10:09:37,549 - INFO -     19.84s - 27.72s: ' Truth be told, I never graduated from college and this is the closest I've ever gotten'
+2025-07-25 10:09:37,549 - INFO -     27.72s - 31.76s: ' to a college graduation.'
+2025-07-25 10:09:37,549 - INFO -     31.76s - 35.08s: ' Today I want to tell you three stories from my life.'
+2025-07-25 10:09:37,550 - INFO -     35.08s - 36.08s: ' That's it.'
+2025-07-25 10:09:37,550 - INFO -     36.08s - 37.08s: ' No big deal.'
+2025-07-25 10:09:37,550 - INFO -     37.08s - 39.60s: ' Just three stories.'
+2025-07-25 10:09:37,550 - INFO -     39.60s - 44.56s: ' The first story is about connecting the dots.'
+2025-07-25 10:09:37,551 - INFO -     44.56s - 48.90s: ' I dropped out of Reed College after the first six months but then stayed around as a drop'
+2025-07-25 10:09:37,552 - INFO -     48.90s - 53.10s: ' in for another 18 months or so before I really quit.'
+2025-07-25 10:09:37,552 - INFO -     53.10s - 56.00s: ' So why'd I drop out?'
+2025-07-25 10:09:37,553 - INFO -     56.00s - 58.96s: ' It started before I was born.'
+2025-07-25 10:09:37,553 - INFO -     58.96s - 66.04s: ' My biological mother was a young, unwed graduate student and she decided to put me up for adoption.'
+2025-07-25 10:09:37,554 - INFO -     66.04s - 71.40s: ' She felt very strongly that I should be adopted by college graduates so everything was all set'
+2025-07-25 10:09:37,555 - INFO -     71.40s - 75.76s: ' for me to be adopted at birth by a lawyer and his wife.'
+2025-07-25 10:09:37,555 - INFO -     75.76s - 79.52s: ' Except that when I popped out they decided at the last minute that they really wanted'
+2025-07-25 10:09:37,555 - INFO -     79.52s - 81.56s: ' a girl.'
+2025-07-25 10:09:37,556 - INFO -     81.56s - 87.00s: ' So my parents who were on a waiting list got a call in the middle of the night asking,'
+2025-07-25 10:09:37,556 - INFO -     87.00s - 89.36s: ' we've got an unexpected baby boy.'
+2025-07-25 10:09:37,556 - INFO -     89.36s - 91.12s: ' Do you want him?'
+2025-07-25 10:09:37,557 - INFO -     91.12s - 94.56s: ' They said, of course.'
+2025-07-25 10:09:37,557 - INFO -     94.56s - 99.60s: ' My biological mother found out later that my mother had never graduated from college and'
+2025-07-25 10:09:37,557 - INFO -     99.60s - 102.80s: ' that my father had never graduated from high school.'
+2025-07-25 10:09:37,558 - INFO -     102.80s - 107.04s: ' She refused to sign the final adoption papers.'
+2025-07-25 10:09:37,558 - INFO -     107.04s - 113.04s: ' She only relented a few months later when my parents promised that I would go to college.'
+2025-07-25 10:09:37,558 - INFO -     113.04s - 117.56s: ' This was the start in my life.'
+2025-07-25 10:09:37,559 - INFO -     117.56s - 124.20s: ' And 17 years later I did go to college but I naively chose a college that was almost as expensive'
+2025-07-25 10:09:37,559 - INFO -     124.20s - 131.32s: ' as Stanford and all of my working class parents' savings were being spent on my college tuition.'
+2025-07-25 10:09:37,559 - INFO -     131.32s - 134.28s: ' After six months I couldn't see the value in it.'
+2025-07-25 10:09:37,560 - INFO -     134.28s - 138.92s: ' I had no idea what I wanted to do with my life and no idea how college was going to help'
+2025-07-25 10:09:37,560 - INFO -     138.92s - 140.52s: ' me figure it out.'
+2025-07-25 10:09:37,560 - INFO -     140.52s - 146.24s: ' And here I was spending all the money my parents had saved their entire life.'
+2025-07-25 10:09:37,561 - INFO -     146.24s - 151.24s: ' So I decided to drop out and trust that it would all work out okay.'
+2025-07-25 10:09:37,561 - INFO -     151.24s - 155.32s: ' It was pretty scary at the time but looking back it was one of the best decisions I ever'
+2025-07-25 10:09:37,561 - INFO -     155.32s - 157.68s: ' made.'
+2025-07-25 10:09:37,562 - INFO -     157.68s - 162.44s: ' The minute I dropped out I could stop taking the required classes that didn't interest'
+2025-07-25 10:09:37,562 - INFO -     162.48s - 168.40s: ' me and begin dropping in on the ones that looked far more interesting.'
+2025-07-25 10:09:37,562 - INFO -     168.40s - 170.16s: ' It wasn't all romantic.'
+2025-07-25 10:09:37,562 - INFO -     170.16s - 174.12s: ' I didn't have a dorm room so I slept on the floor in friends rooms.'
+2025-07-25 10:09:37,563 - INFO -     174.12s - 179.28s: ' I returned Coke bottles for the five cent deposits to buy food with and I would walk the seven'
+2025-07-25 10:09:37,563 - INFO -     179.28s - 185.68s: ' miles across town every Sunday night to get one good meal a week at the Hari Krishna temple.'
+2025-07-25 10:09:37,563 - INFO -     185.68s - 187.40s: ' I loved it.'
+2025-07-25 10:09:37,563 - INFO -     187.40s - 191.68s: ' And much of what I stumbled into by following my curiosity and intuition turned out to'
+2025-07-25 10:09:37,564 - INFO -     191.68s - 193.88s: ' be priceless later on.'
+2025-07-25 10:09:37,564 - INFO -     193.88s - 197.00s: ' Let me give you one example.'
+2025-07-25 10:09:37,564 - INFO -     197.00s - 202.16s: ' Read college at that time offered perhaps the best calligraphy instruction in the country.'
+2025-07-25 10:09:37,564 - INFO -     202.16s - 207.40s: ' Throughout the campus every poster every label on every drawer was beautifully hand'
+2025-07-25 10:09:37,565 - INFO -     207.40s - 209.16s: ' calligraphed.'
+2025-07-25 10:09:37,565 - INFO -     209.16s - 214.04s: ' Because I had dropped out and didn't have to take the normal classes I decided to take'
+2025-07-25 10:09:37,565 - INFO -     214.04s - 216.60s: ' a calligraphy class to learn how to do this.'
+2025-07-25 10:09:37,565 - INFO -     216.60s - 221.72s: ' I learned about serif and san serif typefaces about varying the amount of space between'
+2025-07-25 10:09:37,565 - INFO -     221.72s - 227.00s: ' different letter combinations about what makes great typography great.'
+2025-07-25 10:09:37,566 - INFO -     227.00s - 233.24s: ' It was beautiful, historical, artistically subtle in a way that science can't capture'
+2025-07-25 10:09:37,566 - INFO -     233.24s - 235.76s: ' and I found it fascinating.'
+2025-07-25 10:09:37,566 - INFO -     235.76s - 241.12s: ' None of this had even a hope of any practical application in my life.'
+2025-07-25 10:09:37,567 - INFO -     241.12s - 246.04s: ' 10 years later when we were designing the first Mac and Tosh computer it all came back'
+2025-07-25 10:09:37,567 - INFO -     246.04s - 247.04s: ' to me.'
+2025-07-25 10:09:37,567 - INFO -     247.04s - 249.64s: ' And we designed it all into the Mac.'
+2025-07-25 10:09:37,568 - INFO -     249.64s - 253.00s: ' It was the first computer with beautiful typography.'
+2025-07-25 10:09:37,568 - INFO -     253.00s - 257.88s: ' If I had never dropped in on that single course in college the Mac would have never had multiple'
+2025-07-25 10:09:37,569 - INFO -     257.88s - 260.92s: ' typefaces or proportionally spaced fonts.'
+2025-07-25 10:09:37,569 - INFO -     260.92s - 265.12s: ' And since windows just copied the Mac it's likely that no personal computer would have'
+2025-07-25 10:09:37,570 - INFO -     265.12s - 266.12s: ' them.'
+2025-07-25 10:09:37,570 - INFO -     266.12s - 278.08s: ' If I had never dropped out I would have never dropped in on that calligraphy class and personal'
+2025-07-25 10:09:37,570 - INFO -     278.08s - 281.88s: ' computers might not have the wonderful typography that they do.'
+2025-07-25 10:09:37,571 - INFO -     281.88s - 286.60s: ' Of course it was impossible to connect the dots looking forward when I was in college.'
+2025-07-25 10:09:37,572 - INFO -     286.60s - 290.92s: ' But it was very very clear looking backwards 10 years later.'
+2025-07-25 10:09:37,572 - INFO -     290.92s - 293.68s: ' Again you can't connect the dots looking forward.'
+2025-07-25 10:09:37,573 - INFO -     293.68s - 296.44s: ' You can only connect them looking backwards.'
+2025-07-25 10:09:37,573 - INFO -     296.44s - 300.24s: ' So you have to trust that the dots will somehow connect in your future.'
+2025-07-25 10:09:37,574 - INFO -     300.24s - 305.48s: ' You have to trust in something, your gut, destiny, life, karma, whatever.'
+2025-07-25 10:09:37,575 - INFO -     305.48s - 309.72s: ' Because believing that the dots will connect down the road will give you the confidence'
+2025-07-25 10:09:37,575 - INFO -     309.72s - 315.00s: ' to follow your heart even when it leads you off the well-worn path and that will make'
+2025-07-25 10:09:37,575 - INFO -     315.00s - 322.08s: ' all the difference.'
+2025-07-25 10:09:37,576 - INFO -     322.08s - 327.40s: ' My second story is about love and loss.'
+2025-07-25 10:09:37,576 - INFO -     327.40s - 328.56s: ' I was lucky.'
+2025-07-25 10:09:37,576 - INFO -     328.56s - 331.96s: ' I found what I loved to do early in life.'
+2025-07-25 10:09:37,576 - INFO -     331.96s - 335.32s: ' Walsh and I started Apple in my parents' garage when I was 20.'
+2025-07-25 10:09:37,577 - INFO -     335.32s - 340.04s: ' We worked hard and in 10 years Apple had grown from just the two of us in a garage into'
+2025-07-25 10:09:37,578 - INFO -     340.04s - 343.64s: ' a $2 billion company with over 4,000 employees.'
+2025-07-25 10:09:37,578 - INFO -     343.64s - 349.84s: ' We just released our finest creation, the Macintosh a year earlier and I just turned 30.'
+2025-07-25 10:09:37,578 - INFO -     349.84s - 352.48s: ' And then I got fired.'
+2025-07-25 10:09:37,578 - INFO -     352.48s - 355.92s: ' How can you get fired from a company you started?'
+2025-07-25 10:09:37,579 - INFO -     355.92s - 361.36s: ' Well as Apple grew we hired someone who I thought was very talented to run the company with'
+2025-07-25 10:09:37,579 - INFO -     361.36s - 364.52s: ' me and for the first year or so things went well.'
+2025-07-25 10:09:37,579 - INFO -     364.52s - 369.20s: ' But then our visions of the future began to diverge and eventually we had a falling out.'
+2025-07-25 10:09:37,580 - INFO -     369.20s - 375.48s: ' When we did our board of directors sided with him and so at 30 I was out and very publicly'
+2025-07-25 10:09:37,580 - INFO -     375.48s - 376.80s: ' out.'
+2025-07-25 10:09:37,580 - INFO -     376.80s - 381.84s: ' But it had been the focus of my entire adult life was gone and it was devastating.'
+2025-07-25 10:09:37,580 - INFO -     381.84s - 384.44s: ' I really didn't know what to do for a few months.'
+2025-07-25 10:09:37,581 - INFO -     384.44s - 388.68s: ' I felt that I had let the previous generation of entrepreneurs down that I had dropped'
+2025-07-25 10:09:37,581 - INFO -     388.68s - 391.36s: ' the baton as it was being passed to me.'
+2025-07-25 10:09:37,581 - INFO -     391.36s - 397.72s: ' I met with David Packard and Bob Nois and tried to apologize for screwing up so badly.'
+2025-07-25 10:09:37,581 - INFO -     397.72s - 401.96s: ' I was a very public failure and I even thought about running away from the valley.'
+2025-07-25 10:09:37,582 - INFO -     401.96s - 405.00s: ' But something slowly began to dawn on me.'
+2025-07-25 10:09:37,582 - INFO -     405.00s - 408.44s: ' I still loved what I did.'
+2025-07-25 10:09:37,582 - INFO -     408.44s - 411.64s: ' The turn of events at Apple had not changed that one bit.'
+2025-07-25 10:09:37,582 - INFO -     411.64s - 415.48s: ' I'd been rejected but I was still in love.'
+2025-07-25 10:09:37,583 - INFO -     415.48s - 418.20s: ' And so I decided to start over.'
+2025-07-25 10:09:37,583 - INFO -     418.20s - 422.04s: ' I didn't see it then but it turned out that getting fired from Apple was the best thing'
+2025-07-25 10:09:37,583 - INFO -     422.04s - 424.36s: ' that could have ever happened to me.'
+2025-07-25 10:09:37,584 - INFO -     424.36s - 429.60s: ' The heaviness of being successful was replaced by the lightness of being a beginner again,'
+2025-07-25 10:09:37,584 - INFO -     429.60s - 431.52s: ' less sure about everything.'
+2025-07-25 10:09:37,585 - INFO -     431.52s - 434.96s: ' It freed me to enter one of the most creative periods of my life.'
+2025-07-25 10:09:37,585 - INFO -     434.96s - 439.68s: ' During the next five years I started a company named Next, another company named Pixar,'
+2025-07-25 10:09:37,586 - INFO -     439.68s - 443.28s: ' and fell in love with an amazing woman who would become my wife.'
+2025-07-25 10:09:37,586 - INFO -     443.28s - 447.80s: ' Pixar went on to create the world's first computer animated feature film, Toy Story, and'
+2025-07-25 10:09:37,587 - INFO -     447.80s - 453.28s: ' is now the most successful animation studio in the world.'
+2025-07-25 10:09:37,588 - INFO -     453.28s - 459.28s: ' In a remarkable turn of events, Apple bought Next and I returned to Apple and the technology'
+2025-07-25 10:09:37,588 - INFO -     459.28s - 463.12s: ' we developed at Next is at the heart of Apple's current renaissance.'
+2025-07-25 10:09:37,589 - INFO -     463.12s - 467.20s: ' And Lorraine and I have a wonderful family together.'
+2025-07-25 10:09:37,590 - INFO -     467.20s - 471.48s: ' I'm pretty sure none of this would have happened if I hadn't been fired from Apple.'
+2025-07-25 10:09:37,590 - INFO -     471.48s - 476.16s: ' It was awful tasting medicine but I guess the patient needed it.'
+2025-07-25 10:09:37,591 - INFO -     476.16s - 479.84s: ' Sometimes life's going to hit you in the head with a brick.'
+2025-07-25 10:09:37,591 - INFO - 
+Gap 2: 501.20s - 502.48s
+2025-07-25 10:09:37,591 - INFO -   Segments in gap: 1
+2025-07-25 10:09:37,592 - INFO -     501.20s - 502.48s: ' you do.'
+2025-07-25 10:09:37,592 - INFO - 
+Gap 3: 515.52s - 520.08s
+2025-07-25 10:09:37,592 - INFO -   Segments in gap: 2
+2025-07-25 10:09:37,592 - INFO -     515.52s - 516.52s: ' You'll keep looking.'
+2025-07-25 10:09:37,593 - INFO -     516.52s - 520.08s: ' Don't settle.'
+2025-07-25 10:09:37,593 - INFO - 
+Gap 4: 538.20s - 546.04s
+2025-07-25 10:09:37,593 - INFO -   Segments in gap: 2
+2025-07-25 10:09:37,593 - INFO -     538.20s - 544.16s: ' last, someday you'll most certainly be right.'
+2025-07-25 10:09:37,594 - INFO -     544.16s - 546.04s: ' It made an impression on me.'
+2025-07-25 10:09:37,594 - INFO - 
+Gap 5: 562.32s - 564.20s
+2025-07-25 10:09:37,594 - INFO -   Segments in gap: 1
+2025-07-25 10:09:37,594 - INFO -     562.32s - 564.20s: ' something.'
+2025-07-25 10:09:37,595 - INFO - 
+Gap 6: 568.12s - 571.28s
+2025-07-25 10:09:37,595 - INFO -   Segments in gap: 1
+2025-07-25 10:09:37,595 - INFO -     568.12s - 571.28s: ' to help me make the big choices in life.'
+2025-07-25 10:09:37,595 - INFO - 
+Gap 7: 589.36s - 597.32s
+2025-07-25 10:09:37,596 - INFO -   Segments in gap: 3
+2025-07-25 10:09:37,596 - INFO -     589.36s - 591.44s: ' you have something to lose.'
+2025-07-25 10:09:37,596 - INFO -     591.44s - 593.28s: ' You are already naked.'
+2025-07-25 10:09:37,596 - INFO -     593.28s - 597.32s: ' There is no reason not to follow your heart.'
+2025-07-25 10:09:37,597 - INFO - 
+Gap 8: 614.52s - 619.00s
+2025-07-25 10:09:37,597 - INFO -   Segments in gap: 1
+2025-07-25 10:09:37,597 - INFO -     614.52s - 619.00s: ' I should expect to live no longer than three to six months.'
+2025-07-25 10:09:37,597 - INFO - 
+Gap 9: 625.08s - 855.96s
+2025-07-25 10:09:37,598 - INFO -   Segments in gap: 55
+2025-07-25 10:09:37,598 - INFO -     625.08s - 627.04s: ' prepare to die.'
+2025-07-25 10:09:37,598 - INFO -     627.04s - 630.76s: ' It means to try and tell your kids everything.'
+2025-07-25 10:09:37,598 - INFO -     630.76s - 635.08s: ' You thought you'd have the next 10 years to tell them in just a few months.'
+2025-07-25 10:09:37,599 - INFO -     635.08s - 639.16s: ' It means to make sure everything is buttoned up so that it will be as easy as possible'
+2025-07-25 10:09:37,599 - INFO -     639.16s - 640.80s: ' for your family.'
+2025-07-25 10:09:37,599 - INFO -     640.80s - 644.52s: ' It means to say your goodbyes.'
+2025-07-25 10:09:37,599 - INFO -     644.52s - 647.44s: ' I live with that diagnosis all day.'
+2025-07-25 10:09:37,600 - INFO -     647.44s - 652.08s: ' Later that evening, I had a biopsy where they stuck an endoscope down my throat, threw'
+2025-07-25 10:09:37,600 - INFO -     652.08s - 657.00s: ' my stomach into my intestines, put a needle into my pancreas and got a few cells from'
+2025-07-25 10:09:37,600 - INFO -     657.04s - 658.52s: ' the tumor.'
+2025-07-25 10:09:37,601 - INFO -     658.52s - 663.56s: ' I was sedated, but my wife who was there told me that when they viewed the cells under'
+2025-07-25 10:09:37,601 - INFO -     663.56s - 668.60s: ' a microscope, the doctors started crying because it turned out to be a very rare form of'
+2025-07-25 10:09:37,602 - INFO -     668.60s - 671.92s: ' pancreatic cancer that is curable with surgery.'
+2025-07-25 10:09:37,602 - INFO -     671.92s - 683.96s: ' I had the surgery and thankfully I'm fine now.'
+2025-07-25 10:09:37,603 - INFO -     683.96s - 688.24s: ' This was the closest I've been to facing death and I hope it's the closest I get for a'
+2025-07-25 10:09:37,603 - INFO -     688.24s - 690.08s: ' few more decades.'
+2025-07-25 10:09:37,604 - INFO -     690.08s - 694.20s: ' Having lived through it, I can now say this to you with a bit more certainty than when'
+2025-07-25 10:09:37,604 - INFO -     694.20s - 698.84s: ' death was a useful but purely intellectual concept.'
+2025-07-25 10:09:37,604 - INFO -     698.84s - 701.40s: ' No one wants to die.'
+2025-07-25 10:09:37,605 - INFO -     701.40s - 705.44s: ' Even people who want to go to heaven don't want to die to get there.'
+2025-07-25 10:09:37,605 - INFO -     705.44s - 709.28s: ' And yet death is the destination we all share.'
+2025-07-25 10:09:37,605 - INFO -     709.28s - 711.36s: ' No one has ever escaped it.'
+2025-07-25 10:09:37,606 - INFO -     711.36s - 716.84s: ' And that is as it should be because death is very likely the single best invention of'
+2025-07-25 10:09:37,606 - INFO -     716.84s - 718.24s: ' life.'
+2025-07-25 10:09:37,607 - INFO -     718.24s - 723.00s: ' Its life's change agent, it clears out the old to make way for the new.'
+2025-07-25 10:09:37,607 - INFO -     723.00s - 725.68s: ' Right now the new is you.'
+2025-07-25 10:09:37,607 - INFO -     725.68s - 731.52s: ' But someday not too long from now you will gradually become the old and be cleared away.'
+2025-07-25 10:09:37,608 - INFO -     731.52s - 735.76s: ' Sorry to be so dramatic, but it's quite true.'
+2025-07-25 10:09:37,608 - INFO -     735.76s - 741.16s: ' Your time is limited so don't waste it living someone else's life.'
+2025-07-25 10:09:37,608 - INFO -     741.16s - 746.32s: ' Don't be trapped by dogma which is living with the results of other people's thinking.'
+2025-07-25 10:09:37,609 - INFO -     746.32s - 750.40s: ' Don't let the noise of others opinions drown out your own inner voice.'
+2025-07-25 10:09:37,609 - INFO -     750.40s - 754.60s: ' And most important have the courage to follow your heart and intuition.'
+2025-07-25 10:09:37,609 - INFO -     754.60s - 759.12s: ' They somehow already know what you truly want to become.'
+2025-07-25 10:09:37,609 - INFO -     759.12s - 760.80s: ' Everything else is secondary.'
+2025-07-25 10:09:37,610 - INFO -     772.16s - 778.88s: ' When I was young there was an amazing publication called The Whole Earth Catalog which was one of the'
+2025-07-25 10:09:37,610 - INFO -     778.88s - 781.28s: ' Bibles of my generation.'
+2025-07-25 10:09:37,610 - INFO -     781.28s - 786.56s: ' It was created by a fellow named Sturt Brand not far from here in Menlo Park and he brought'
+2025-07-25 10:09:37,611 - INFO -     786.56s - 789.28s: ' it to life with his poetic touch.'
+2025-07-25 10:09:37,611 - INFO -     789.28s - 794.32s: ' This was in the late 60s before personal computers and desktop publishing so it was all made'
+2025-07-25 10:09:37,611 - INFO -     794.32s - 797.68s: ' with typewriters, scissors and Polaroid cameras.'
+2025-07-25 10:09:37,611 - INFO -     797.68s - 802.96s: ' It was sort of like Google and paperback form 35 years before Google came along.'
+2025-07-25 10:09:37,611 - INFO -     802.96s - 808.64s: ' It was idealistic, overflowing with neat tools and great notions.'
+2025-07-25 10:09:37,612 - INFO -     808.64s - 813.08s: ' Sturt and his team put out several issues of the Whole Earth Catalog and then when it had'
+2025-07-25 10:09:37,612 - INFO -     813.08s - 816.40s: ' run its course they put out a final issue.'
+2025-07-25 10:09:37,612 - INFO -     816.40s - 821.64s: ' It was the mid 1970s and I was your age.'
+2025-07-25 10:09:37,612 - INFO -     821.64s - 826.24s: ' On the back cover of their final issue was a photograph of an early morning country'
+2025-07-25 10:09:37,613 - INFO -     826.24s - 827.24s: ' road.'
+2025-07-25 10:09:37,613 - INFO -     827.24s - 831.96s: ' The kind you might find yourself hitchhiking on if you were so adventurous.'
+2025-07-25 10:09:37,613 - INFO -     831.96s - 836.84s: ' Beneath it were the words, stay hungry, stay foolish.'
+2025-07-25 10:09:37,613 - INFO -     836.84s - 840.20s: ' It was their farewell message as they signed off.'
+2025-07-25 10:09:37,613 - INFO -     840.20s - 843.12s: ' Stay hungry, stay foolish.'
+2025-07-25 10:09:37,614 - INFO -     843.12s - 846.68s: ' And I have always wished that for myself.'
+2025-07-25 10:09:37,614 - INFO -     846.68s - 852.08s: ' And now as you graduate to begin a new, I wish that for you.'
+2025-07-25 10:09:37,614 - INFO -     852.08s - 854.96s: ' Stay hungry, stay foolish.'
+2025-07-25 10:09:37,614 - INFO -     854.96s - 855.96s: ' Thank you all very much.'
+2025-07-25 10:09:37,614 - INFO - 
+Detailed match information:
+2025-07-25 10:09:37,615 - INFO - 
+Match 1:
+2025-07-25 10:09:37,615 - INFO -   Start time: 479.84s
+2025-07-25 10:09:37,615 - INFO -   End time: 501.20s
+2025-07-25 10:09:37,615 - INFO -   Duration: 21.36s
+2025-07-25 10:09:37,615 - INFO -   Confidence: 1.000
+2025-07-25 10:09:37,615 - INFO -   Text: 'Don't lose faith.'
+2025-07-25 10:09:37,616 - INFO - 
+Match 2:
+2025-07-25 10:09:37,616 - INFO -   Start time: 502.48s
+2025-07-25 10:09:37,616 - INFO -   End time: 515.52s
+2025-07-25 10:09:37,616 - INFO -   Duration: 13.04s
+2025-07-25 10:09:37,616 - INFO -   Confidence: 1.000
+2025-07-25 10:09:37,617 - INFO -   Text: 'If you haven't found it yet, keep looking and don't settle.'
+2025-07-25 10:09:37,617 - INFO - 
+Match 3:
+2025-07-25 10:09:37,617 - INFO -   Start time: 520.08s
+2025-07-25 10:09:37,617 - INFO -   End time: 538.20s
+2025-07-25 10:09:37,618 - INFO -   Duration: 18.12s
+2025-07-25 10:09:37,618 - INFO -   Confidence: 0.999
+2025-07-25 10:09:37,618 - INFO -   Text: 'My third story is about death.'
+2025-07-25 10:09:37,619 - INFO - 
+Match 4:
+2025-07-25 10:09:37,619 - INFO -   Start time: 546.04s
+2025-07-25 10:09:37,619 - INFO -   End time: 562.32s
+2025-07-25 10:09:37,619 - INFO -   Duration: 16.28s
+2025-07-25 10:09:37,620 - INFO -   Confidence: 1.000
+2025-07-25 10:09:37,620 - INFO -   Text: 'And since then, for the past 33 years, I've looked in the mirror every morning and asked myself,'
+2025-07-25 10:09:37,620 - INFO - 
+Match 5:
+2025-07-25 10:09:37,620 - INFO -   Start time: 564.20s
+2025-07-25 10:09:37,621 - INFO -   End time: 568.12s
+2025-07-25 10:09:37,621 - INFO -   Duration: 3.92s
+2025-07-25 10:09:37,621 - INFO -   Confidence: 0.917
+2025-07-25 10:09:37,621 - INFO -   Text: 'Remembering that all be dead soon is the most important tool I've ever encountered'
+2025-07-25 10:09:37,622 - INFO - 
+Match 6:
+2025-07-25 10:09:37,622 - INFO -   Start time: 571.28s
+2025-07-25 10:09:37,622 - INFO -   End time: 589.36s
+2025-07-25 10:09:37,622 - INFO -   Duration: 18.08s
+2025-07-25 10:09:37,622 - INFO -   Confidence: 1.000
+2025-07-25 10:09:37,623 - INFO -   Text: 'As almost everything, all external expectations, all pride, all fear of embarrassment or failure,'
+2025-07-25 10:09:37,623 - INFO - 
+Match 7:
+2025-07-25 10:09:37,623 - INFO -   Start time: 597.32s
+2025-07-25 10:09:37,623 - INFO -   End time: 614.52s
+2025-07-25 10:09:37,623 - INFO -   Duration: 17.20s
+2025-07-25 10:09:37,624 - INFO -   Confidence: 1.001
+2025-07-25 10:09:37,624 - INFO -   Text: 'About a year ago, I was diagnosed with cancer.'
+2025-07-25 10:09:37,624 - INFO - 
+Match 8:
+2025-07-25 10:09:37,624 - INFO -   Start time: 619.00s
+2025-07-25 10:09:37,624 - INFO -   End time: 625.08s
+2025-07-25 10:09:37,624 - INFO -   Duration: 6.08s
+2025-07-25 10:09:37,625 - INFO -   Confidence: 0.904
+2025-07-25 10:09:37,625 - INFO -   Text: 'My doctor advised me to go home and get my affairs in order, which is doctor's code for'
+2025-07-25 10:09:37,625 - INFO - 
+================================================================================
+2025-07-25 10:09:37,625 - INFO - DEBUG SESSION SUMMARY
+2025-07-25 10:09:37,625 - INFO - ================================================================================
+2025-07-25 10:09:37,625 - INFO - Primary file processed: testing files\sp.mp3
+2025-07-25 10:09:37,626 - INFO - Secondary file processed: testing files\ss.mp3
+2025-07-25 10:09:37,626 - INFO - Primary text length: 11882 characters
+2025-07-25 10:09:37,626 - INFO - Secondary text length: 2031 characters
+2025-07-25 10:09:37,626 - INFO - Primary segments: 203
+2025-07-25 10:09:37,626 - INFO - Secondary chunks: 25
+2025-07-25 10:09:37,626 - INFO - Search threshold: 0.7
+2025-07-25 10:09:37,627 - INFO - Matches found: 8
+2025-07-25 10:09:37,627 - INFO - Search success: True
