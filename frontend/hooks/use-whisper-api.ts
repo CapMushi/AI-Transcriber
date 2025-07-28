@@ -53,6 +53,9 @@ export interface UseWhisperAPIState {
   // Loading states
   isLoadingFormats: boolean
   isLoadingModels: boolean
+  
+  // Model selection state
+  selectedModel: string
 }
 
 export interface UseWhisperAPIActions {
@@ -87,6 +90,9 @@ export interface UseWhisperAPIActions {
   
   // Error handling
   clearError: () => void
+  
+  // Model selection
+  setSelectedModel: (model: string) => void
 }
 
 export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
@@ -119,10 +125,19 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
   const [error, setError] = useState<string | null>(null)
   const [isLoadingFormats, setIsLoadingFormats] = useState(false)
   const [isLoadingModels, setIsLoadingModels] = useState(false)
+  
+  // Model selection state
+  const [selectedModel, setSelectedModel] = useState<string>('base')
 
   // Clear error
   const clearError = useCallback(() => {
     setError(null)
+  }, [])
+
+  // Set selected model
+  const updateSelectedModel = useCallback((model: string) => {
+    console.log('🔄 Setting selected model to:', model)
+    setSelectedModel(model)
   }, [])
 
   // Upload file
@@ -412,7 +427,10 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       // Call the actual comparison API (now only searches against stored primary)
       const response = await apiService.compareContent(
         primaryFile.file_path,  // This is now just for reference, not used in storage
-        secondaryFile.file_path
+        secondaryFile.file_path,
+        0.7, // threshold
+        selectedModel, // model - using selected model
+        'auto'  // language
       )
       
       console.log('📥 Comparison response:', response)
@@ -444,7 +462,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     } finally {
       setIsComparing(false)
     }
-  }, [primaryFile, secondaryFile])
+  }, [primaryFile, secondaryFile, selectedModel])
 
   // Clear uploaded file (for backward compatibility)
   const clearFile = useCallback(() => {
@@ -704,5 +722,9 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     loadAvailableModels,
     loadDownloadFormats,
     clearError,
+    
+    // Model selection
+    selectedModel,
+    setSelectedModel: updateSelectedModel,
   }
 } 

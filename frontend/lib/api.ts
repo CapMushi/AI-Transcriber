@@ -292,11 +292,15 @@ class APIService {
   async compareContent(
     primaryFilePath: string,
     secondaryFilePath: string,
-    threshold: number = 0.95
+    threshold: number = 0.95,
+    model: string = 'base',
+    language: string = 'auto'
   ): Promise<ComparisonResponse> {
     console.log('🔍 API: Starting content comparison...')
     console.log('📁 Primary file path:', primaryFilePath)
     console.log('📁 Secondary file path:', secondaryFilePath)
+    console.log('🤖 Model:', model)
+    console.log('🌍 Language:', language)
     
     try {
       const result = await this.request<ComparisonResponse>('/api/compare-content', {
@@ -305,6 +309,8 @@ class APIService {
           primary_file_path: primaryFilePath,
           secondary_file_path: secondaryFilePath,
           threshold,
+          model,
+          language,
         }),
       })
       

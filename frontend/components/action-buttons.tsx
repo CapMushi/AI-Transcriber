@@ -17,7 +17,8 @@ export function ActionButtons() {
     transcribeFile,
     storePrimaryContent,
     clearEmbeddings,
-    compareContent
+    compareContent,
+    selectedModel
   } = useWhisperContext()
 
   // Debug logging
@@ -64,7 +65,7 @@ export function ActionButtons() {
     
     // Step 1: Store primary content first
     console.log('💾 Step 1: Storing primary content...')
-    const storeResult = await storePrimaryContent('base', 'auto')
+    const storeResult = await storePrimaryContent(selectedModel, 'auto')
     if (!storeResult) {
       console.error('❌ Failed to store primary content')
       return
@@ -74,7 +75,7 @@ export function ActionButtons() {
     console.log('🔍 Step 2: Comparing content...')
     const compareResult = await compareContent()
     console.log('🔍 Comparison result:', compareResult)
-  }, [primaryFile, secondaryFile, storePrimaryContent, compareContent])
+  }, [primaryFile, secondaryFile, storePrimaryContent, compareContent, selectedModel])
 
   const handleClearEmbeddings = useCallback(async () => {
     console.log('🧹 Clear embeddings button clicked')

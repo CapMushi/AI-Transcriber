@@ -13,31 +13,32 @@ interface TranscriptionOutputProps {
 }
 
 export function TranscriptionOutput({ transcription }: TranscriptionOutputProps) {
-  const { 
-    isTranscribing, 
-    transcriptionProgress, 
-    isStoring,
-    storageProgress,
-    uploadedFile, 
-    primaryFile,
-    secondaryFile,
-    comparisonResult,
-    isComparing,
+  const {
+    uploadedFile,
+    isTranscribing,
+    transcriptionProgress,
+    transcribeFile,
     downloadTranscription,
     availableModels,
+    selectedModel,
+    setSelectedModel,
+    comparisonResult,
     loadAvailableModels,
-    transcribeFile,
-    audioUrl
+    isStoring,
+    storageProgress,
+    isComparing
   } = useWhisperContext()
-  
+
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false)
+  const [highlightedSegment, setHighlightedSegment] = useState<number | null>(null)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [showInfoPopup, setShowInfoPopup] = useState(false)
+
   const { jumpToTimestamp } = useAudioPlayer(audioUrl)
 
   // Debug logging
   console.log('📝 TranscriptionOutput - transcription:', transcription)
   console.log('📝 TranscriptionOutput - comparisonResult:', comparisonResult)
-  const [showDownloadPopup, setShowDownloadPopup] = useState(false)
-  const [showInfoPopup, setShowInfoPopup] = useState(false)
-  const [selectedModel, setSelectedModel] = useState('base')
 
   // Function to check if a segment should be highlighted based on comparison timestamps
   const shouldHighlightSegment = (segmentStart: number, segmentEnd: number): boolean => {
