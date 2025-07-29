@@ -1,0 +1,59 @@
+services:
+  # Backend API service
+  whisperai-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: whisperai-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT:-us-east-1}
+      - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME:-transcription}
+      - CHUNK_SIZE=${CHUNK_SIZE:-1000}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-200}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./temp:/app/temp
+    networks:
+      - whisperai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-X", "GET", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend service
+  whisperai-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: whisperai-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=production
+    depends_on:
+      - whisperai-backend
+    networks:
+      - whisperai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-X", "GET", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  whisperai-network:
+    driver: bridge
+
+volumes:
+  uploads:
+  temp:

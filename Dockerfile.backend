@@ -1,0 +1,42 @@
+# Optimized backend using Python 3.12.10 slim image
+FROM python:3.12.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies (lightweight) with legacy peer deps
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt --use-pep517
+
+# Copy backend source code
+COPY api/ ./api/
+COPY src/ ./src/
+COPY config.py .
+COPY api_server.py .
+COPY main.py .
+
+# Create directories for file uploads
+RUN mkdir -p /app/uploads /app/temp
+
+# Expose port
+EXPOSE 8000
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Health check using curl with GET method
+HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
+    CMD curl -f -X GET http://localhost:8000/health || exit 1
+
+# Run the application
+CMD ["uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000"]
