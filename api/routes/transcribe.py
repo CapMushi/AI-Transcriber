@@ -59,6 +59,8 @@ class ComparisonRequest(BaseModel):
     """Request model for content comparison"""
     primary_file_path: str
     secondary_file_path: str
+    primary_original_filename: str = None  # NEW: Optional field for primary original filename
+    secondary_original_filename: str = None  # NEW: Optional field for secondary original filename
     threshold: float = 0.7  # Lowered from 0.95 to 0.7 for testing
     model: str = "base"
     language: str = "auto"
@@ -70,10 +72,11 @@ class ComparisonResponse(BaseModel):
     success: bool
     message: str
     found: bool = False
-    timestamps: List[Dict[str, float]] = []  # start/end times
+    timestamps: List[Dict[str, Any]] = []  # Enhanced: start/end times + source file
     confidence: float = 0.0
     primary_text: str = ""
     secondary_text: str = ""
+    majority_source_file: str = ""  # NEW: File with most matches
     error: str = None
     parallel_used: bool = False  # NEW: Indicates if parallel processing was used
 
@@ -81,6 +84,7 @@ class ComparisonResponse(BaseModel):
 class StorePrimaryRequest(BaseModel):
     """Request model for storing primary content"""
     file_path: str
+    original_filename: str = None  # NEW: Optional field for original filename
     model: str = "base"
     language: str = "auto"
     use_parallel: bool = False  # NEW: Enable parallel processing
@@ -451,10 +455,11 @@ async def store_primary_content(request: StorePrimaryRequest):
             file_info = audio_processor.get_file_info(request.file_path)
             
             # Prepare file metadata
-            original_filename = os.path.basename(request.file_path)
+            original_filename = request.original_filename or os.path.basename(request.file_path)
             print(f"🔍 DEBUG: store-primary API route preparing metadata:")
             print(f"  - request.file_path: '{request.file_path}'")
-            print(f"  - os.path.basename result: '{original_filename}'")
+            print(f"  - request.original_filename: '{request.original_filename}'")
+            print(f"  - using original_filename: '{original_filename}'")
             print(f"  - file_info: {file_info}")
             
             file_metadata = vector_handler.prepare_file_metadata(
@@ -553,10 +558,18 @@ async def compare_content(request: ComparisonRequest):
                         # Extract only timestamp fields from matches
                         timestamp_data = []
                         for match in matches:
-                            timestamp_data.append({
+                            timestamp_info = {
                                 "start_time": match.get("start_time", 0.0),
-                                "end_time": match.get("end_time", 0.0)
-                            })
+                                "end_time": match.get("end_time", 0.0),
+                                "source_file": match.get("source_file", "unknown"),  # NEW: Include source file
+                                "confidence": match.get("confidence", 0.0)  # NEW: Include confidence
+                            }
+                            timestamp_data.append(timestamp_info)
+                            print(f"🔍 DEBUG: API adding timestamp: {timestamp_info}")
+                        
+                        print(f"🔍 DEBUG: API final timestamp_data: {timestamp_data}")
+                        
+                        majority_source_file = _calculate_majority_source_file(matches)
                         
                         return ComparisonResponse(
                             success=True,
@@ -566,6 +579,7 @@ async def compare_content(request: ComparisonRequest):
                             confidence=search_result.get("confidence", 0.0),
                             primary_text="",  # No primary text since it's already stored
                             secondary_text=secondary_result.get("text", ""),
+                            majority_source_file=majority_source_file,
                             parallel_used=True
                         )
                     else:
@@ -576,6 +590,7 @@ async def compare_content(request: ComparisonRequest):
                             found=False,
                             primary_text="",  # No primary text since it's already stored
                             secondary_text=secondary_result.get("text", ""),
+                            majority_source_file="",
                             parallel_used=True
                         )
                 else:
@@ -655,10 +670,18 @@ async def compare_content(request: ComparisonRequest):
                     # Extract only timestamp fields from matches
                     timestamp_data = []
                     for match in matches:
-                        timestamp_data.append({
+                        timestamp_info = {
                             "start_time": match.get("start_time", 0.0),
-                            "end_time": match.get("end_time", 0.0)
-                        })
+                            "end_time": match.get("end_time", 0.0),
+                            "source_file": match.get("source_file", "unknown"),  # NEW: Include source file
+                            "confidence": match.get("confidence", 0.0)  # NEW: Include confidence
+                        }
+                        timestamp_data.append(timestamp_info)
+                        print(f"🔍 DEBUG: API (sequential) adding timestamp: {timestamp_info}")
+                    
+                    print(f"🔍 DEBUG: API (sequential) final timestamp_data: {timestamp_data}")
+                    
+                    majority_source_file = _calculate_majority_source_file(matches)
                     
                     return ComparisonResponse(
                         success=True,
@@ -668,6 +691,7 @@ async def compare_content(request: ComparisonRequest):
                         confidence=search_result.get("confidence", 0.0),
                         primary_text="",  # No primary text since it's already stored
                         secondary_text=secondary_result.get("text", ""),
+                        majority_source_file=majority_source_file,
                         parallel_used=False
                     )
                 else:
@@ -678,6 +702,7 @@ async def compare_content(request: ComparisonRequest):
                         found=False,
                         primary_text="",  # No primary text since it's already stored
                         secondary_text=secondary_result.get("text", ""),
+                        majority_source_file="",
                         parallel_used=False
                     )
             else:
@@ -801,3 +826,33 @@ async def clear_embeddings():
             success=False,
             error=f"Clear embeddings error: {str(e)}"
         ) 
+
+
+def _calculate_majority_source_file(matches: List[Dict[str, Any]]) -> str:
+    """
+    Calculate which source file has the most matches
+    
+    Args:
+        matches: List of match dictionaries with source_file information
+        
+    Returns:
+        Name of the file with the most matches
+    """
+    if not matches:
+        return ""
+    
+    # Count matches per source file
+    source_counts = {}
+    for match in matches:
+        source_file = match.get("source_file", "unknown")
+        source_counts[source_file] = source_counts.get(source_file, 0) + 1
+    
+    print(f"🔍 DEBUG: Source file counts: {source_counts}")
+    
+    # Find the file with the most matches
+    if source_counts:
+        majority_file = max(source_counts.items(), key=lambda x: x[1])
+        print(f"🔍 DEBUG: Majority file: {majority_file[0]} with {majority_file[1]} matches")
+        return majority_file[0]
+    
+    return "" 

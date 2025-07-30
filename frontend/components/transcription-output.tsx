@@ -426,23 +426,44 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
               <h3 className="text-sm font-semibold text-light-gray">Timestamps</h3>
             </div>
             
+            {/* NEW: Majority source file display */}
+            {comparisonResult.majority_source_file && (
+              <div className="mb-3 p-2 bg-accent-orange/10 border border-accent-orange/20 rounded">
+                <div className="text-xs text-light-gray">
+                  <span>Secondary video/audio found in: </span>
+                  <span className="text-accent-orange font-medium">{comparisonResult.majority_source_file}</span>
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-2">
-              {comparisonResult.timestamps.map((timestamp: any, index: number) => (
-                <div key={index} className="bg-dark-secondary/30 border border-dark-secondary/50 rounded p-2 hover:bg-dark-secondary/40 transition-all duration-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-accent-orange font-medium">Match {index + 1}</span>
-                    <span className="text-xs text-light-gray/70">{(timestamp.end_time - timestamp.start_time).toFixed(1)}s</span>
-                  </div>
-                  <div className="text-xs text-light-gray">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-accent-orange" />
-                      <span className="text-accent-orange font-medium">
-                        {timestamp.start_time.toFixed(1)}s - {timestamp.end_time.toFixed(1)}s
-                      </span>
+              {comparisonResult.timestamps.map((timestamp: any, index: number) => {
+                console.log(`🔍 DEBUG: Rendering timestamp ${index + 1}:`, timestamp)
+                return (
+                  <div key={index} className="bg-dark-secondary/30 border border-dark-secondary/50 rounded p-2 hover:bg-dark-secondary/40 transition-all duration-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-accent-orange font-medium">Match {index + 1}</span>
+                      <span className="text-xs text-light-gray/70">{(timestamp.end_time - timestamp.start_time).toFixed(1)}s</span>
+                    </div>
+                    <div className="text-xs text-light-gray">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Clock className="h-3 w-3 text-accent-orange" />
+                        <span className="text-accent-orange font-medium">
+                          {timestamp.start_time.toFixed(1)}s - {timestamp.end_time.toFixed(1)}s
+                        </span>
+                      </div>
+                      {/* REMOVED: Individual source file display */}
+                      {/* NEW: Individual match confidence */}
+                      {timestamp.confidence && (
+                        <div className="flex items-center gap-1 text-light-gray/80 mt-1">
+                          <span className="text-xs">Match confidence:</span>
+                          <span className="text-xs text-accent-orange font-medium">{(timestamp.confidence * 100).toFixed(1)}%</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
             
             <div className="mt-3 pt-2 border-t border-dark-secondary/30">
@@ -456,6 +477,18 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
                   <span className="text-accent-orange">{comparisonResult.timestamps.length}</span>
                 </div>
               </div>
+              {/* DEBUG: Show raw data for troubleshooting */}
+              <details className="mt-2">
+                <summary className="text-xs text-light-gray/50 cursor-pointer">Debug: Raw Data</summary>
+                <pre className="text-xs text-light-gray/60 mt-1 bg-dark-secondary/20 p-2 rounded overflow-auto max-h-20">
+                  {JSON.stringify({
+                    timestamps: comparisonResult.timestamps,
+                    majority_source_file: comparisonResult.majority_source_file,
+                    found: comparisonResult.found,
+                    confidence: comparisonResult.confidence
+                  }, null, 2)}
+                </pre>
+              </details>
             </div>
           </div>
         )}

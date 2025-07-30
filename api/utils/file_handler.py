@@ -51,6 +51,40 @@ class FileHandler:
         except Exception as e:
             return False, f"Error saving file: {str(e)}"
     
+    async def save_uploaded_file_with_metadata(self, file: UploadFile) -> Tuple[bool, str, dict]:
+        """
+        Save uploaded file and return metadata including original filename
+        
+        Args:
+            file: Uploaded file from FastAPI
+            
+        Returns:
+            Tuple of (success, file_path, metadata)
+        """
+        try:
+            # Generate unique filename
+            file_id = str(uuid.uuid4())
+            file_extension = Path(file.filename).suffix if file.filename else ""
+            temp_filename = f"{file_id}{file_extension}"
+            temp_path = self.upload_dir / temp_filename
+            
+            # Save file
+            with open(temp_path, "wb") as buffer:
+                content = await file.read()
+                buffer.write(content)
+            
+            # Return metadata including original filename
+            metadata = {
+                "file_path": str(temp_path),
+                "original_name": file.filename,
+                "temp_filename": temp_filename
+            }
+            
+            return True, str(temp_path), metadata
+            
+        except Exception as e:
+            return False, f"Error saving file: {str(e)}", {}
+    
     def cleanup_file(self, file_path: str) -> bool:
         """
         Clean up temporary file

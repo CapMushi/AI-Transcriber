@@ -63,10 +63,16 @@ export interface ComparisonResponse {
   success: boolean
   message: string
   found: boolean
-  timestamps: Array<{ start_time: number; end_time: number }>
+  timestamps: Array<{ 
+    start_time: number; 
+    end_time: number; 
+    source_file?: string;  // NEW: Source file information
+    confidence?: number;    // NEW: Individual match confidence
+  }>
   confidence: number
   primary_text: string
   secondary_text: string
+  majority_source_file?: string  // NEW: File with most matches
   error?: string
 }
 
@@ -294,11 +300,15 @@ class APIService {
     secondaryFilePath: string,
     threshold: number = 0.95,
     model: string = 'base',
-    language: string = 'auto'
+    language: string = 'auto',
+    primaryOriginalFilename?: string,  // NEW: Optional original filename
+    secondaryOriginalFilename?: string  // NEW: Optional original filename
   ): Promise<ComparisonResponse> {
     console.log('🔍 API: Starting content comparison...')
     console.log('📁 Primary file path:', primaryFilePath)
     console.log('📁 Secondary file path:', secondaryFilePath)
+    console.log('📁 Primary original filename:', primaryOriginalFilename)
+    console.log('📁 Secondary original filename:', secondaryOriginalFilename)
     console.log('🤖 Model:', model)
     console.log('🌍 Language:', language)
     
@@ -308,6 +318,8 @@ class APIService {
         body: JSON.stringify({
           primary_file_path: primaryFilePath,
           secondary_file_path: secondaryFilePath,
+          primary_original_filename: primaryOriginalFilename,
+          secondary_original_filename: secondaryOriginalFilename,
           threshold,
           model,
           language,
@@ -333,10 +345,12 @@ class APIService {
   async storePrimaryContent(
     filePath: string,
     model: string = 'base',
-    language: string = 'auto'
+    language: string = 'auto',
+    originalFilename?: string  // NEW: Optional original filename
   ): Promise<StorePrimaryResponse> {
     console.log('💾 API: Storing primary content...')
     console.log('📁 File path:', filePath)
+    console.log('📁 Original filename:', originalFilename)
     console.log('🤖 Model:', model)
     console.log('🌍 Language:', language)
 
@@ -345,6 +359,7 @@ class APIService {
         method: 'POST',
         body: JSON.stringify({
           file_path: filePath,
+          original_filename: originalFilename,
           model,
           language,
         }),

@@ -320,7 +320,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     model: string = 'base',
     language: string = 'auto'
   ): Promise<boolean> => {
-    console.log('💾 Starting primary content storage...')
+    console.log('💾 Starting store primary content...')
     console.log('📁 Primary file:', primaryFile)
     
     if (!primaryFile) {
@@ -330,23 +330,25 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     }
     
     try {
-      setIsTranscribing(true)  // Start transcription state
+      setIsTranscribing(true)
       setError(null)
       
       console.log('🔄 Calling store primary API...')
       
+      // Call the store primary API with original filename
       const response = await apiService.storePrimaryContent(
         primaryFile.file_path,
         model,
-        language
+        language,
+        primaryFile.original_name  // NEW: Pass original filename
       )
       
       console.log('📥 Store primary response:', response)
       
       if (response.success) {
-        console.log('✅ Transcription completed successfully:', response)
+        console.log('✅ Store primary successful:', response)
         
-        // Set the transcription from storage response immediately
+        // Create transcription data from response
         const transcriptionData = {
           success: true,
           message: response.message || "Transcription completed",
@@ -424,19 +426,24 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       
       console.log('🔄 Calling comparison API...')
       
-      // Call the actual comparison API (now only searches against stored primary)
+      // Call the actual comparison API with original filenames
       const response = await apiService.compareContent(
-        primaryFile.file_path,  // This is now just for reference, not used in storage
+        primaryFile.file_path,
         secondaryFile.file_path,
         0.7, // threshold
         selectedModel, // model - using selected model
-        'auto'  // language
+        'auto',  // language
+        primaryFile.original_name,  // NEW: Pass primary original filename
+        secondaryFile.original_name  // NEW: Pass secondary original filename
       )
       
       console.log('📥 Comparison response:', response)
       
       if (response.success) {
         console.log('✅ Comparison successful:', response)
+        console.log('🔍 DEBUG: Response timestamps:', response.timestamps)
+        console.log('🔍 DEBUG: Response found:', response.found)
+        console.log('🔍 DEBUG: Response majority_source_file:', response.majority_source_file)
         setComparisonResult(response)
         
         // Debug: Print transcriptions of both files

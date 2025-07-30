@@ -383,16 +383,20 @@ class PineconeVectorStore:
                             confidence = getattr(match, 'score', 0.0)
                             metadata = getattr(match, 'metadata', {})
                             match_text = metadata.get("text", "")
+                            source_file = metadata.get("original_filename", "unknown")
                             # Content overlap already checked in optimized search
                             print(f"🔍 DEBUG: Chunk {chunk_idx+1} match - Confidence: {confidence:.3f}, Overlap: True (pre-validated)")
+                            print(f"🔍 DEBUG: Match metadata: {metadata}")
+                            print(f"🔍 DEBUG: Source file: '{source_file}'")
                             chunk_results.append({
                                 "start_time": metadata.get("start_time", 0.0),
                                 "end_time": metadata.get("end_time", 0.0),
                                 "text": match_text,
                                 "confidence": confidence,
-                                "segment_index": metadata.get("segment_index", 0)
+                                "segment_index": metadata.get("segment_index", 0),
+                                "source_file": source_file  # NEW: Include source file
                             })
-                            print(f"✅ DEBUG: Chunk {chunk_idx+1} match added to results")
+                            print(f"✅ DEBUG: Chunk {chunk_idx+1} match added to results with source_file: '{source_file}'")
                         return chunk_results
 
                     chunk_args = [(i, chunk_texts[i], batch_embeddings[i]) for i in range(len(chunk_texts))]

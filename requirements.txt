@@ -1,7 +1,4 @@
-openai-whisper>=20231117
-ffmpeg-python>=0.2.0
-argparse
-pathlib
+# Core dependencies (lightweight and compatible)
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 python-multipart>=0.0.6
@@ -10,4 +7,8 @@ passlib[bcrypt]>=1.7.4
 requests>=2.31.0
 pinecone>=3.0.0
 openai>=1.0.0
-python-dotenv>=1.0.0 
+python-dotenv>=1.0.0
+ffmpeg-python>=0.2.0
+
+# Note: openai-whisper and torch are removed due to Alpine compatibility issues
+# If you need transcription, consider using external APIs or different approach 

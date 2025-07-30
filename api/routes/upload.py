@@ -57,7 +57,7 @@ async def upload_file(file: UploadFile = File(...)):
             )
         
         # Save uploaded file
-        success, result = await file_handler.save_uploaded_file(file)
+        success, result, metadata = await file_handler.save_uploaded_file_with_metadata(file)
         if not success:
             return UploadResponse(
                 success=False,
@@ -86,7 +86,8 @@ async def upload_file(file: UploadFile = File(...)):
             message="File uploaded and validated successfully",
             file_info={
                 "file_path": file_path,
-                "original_name": file.filename,
+                "original_name": metadata.get("original_name", file.filename),
+                "temp_filename": metadata.get("temp_filename", ""),
                 "size_mb": file_info.get("size_mb", 0),
                 "duration": file_info.get("duration", 0),
                 "format": file_info.get("extension", ""),
