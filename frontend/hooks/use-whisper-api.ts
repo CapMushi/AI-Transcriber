@@ -3,7 +3,7 @@
  * Manages state, API calls, and error handling
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { 
   apiService, 
   UploadResponse, 
@@ -18,7 +18,7 @@ import {
 export interface UseWhisperAPIState {
   // File state
   uploadedFile: FileInfo | null
-  primaryFile: FileInfo | null
+  primaryFiles: FileInfo[]  // NEW: Multiple primary files
   secondaryFile: FileInfo | null
   isUploading: boolean
   uploadProgress: number
@@ -28,6 +28,7 @@ export interface UseWhisperAPIState {
   
   // Transcription state
   transcription: TranscriptionResponse | null
+  localTranscriptions: Map<string, TranscriptionResponse>  // NEW: Store transcriptions locally
   isTranscribing: boolean
   transcriptionProgress: number
   
@@ -61,10 +62,10 @@ export interface UseWhisperAPIState {
 export interface UseWhisperAPIActions {
   // File operations
   uploadFile: (file: File) => Promise<boolean>
-  uploadPrimaryFile: (file: File) => Promise<boolean>
+  uploadPrimaryFiles: (files: File[]) => Promise<boolean>  // NEW: Multiple file upload
   uploadSecondaryFile: (file: File) => Promise<boolean>
   clearFile: () => void
-  clearPrimaryFile: () => void
+  clearPrimaryFiles: () => void  // NEW: Clear multiple files
   clearSecondaryFile: () => void
   
   // Transcription operations
@@ -73,12 +74,13 @@ export interface UseWhisperAPIActions {
   
   // Storage operations
   storePrimaryContent: (model?: string, language?: string) => Promise<boolean>
+  storeMultiplePrimaryContent: (model?: string, language?: string) => Promise<boolean>  // NEW: Store multiple files
   
   // Clear embeddings operations
   clearEmbeddings: () => Promise<boolean>
   
   // Comparison operations
-  compareContent: () => Promise<boolean>
+  compareContent: (storedTranscriptions?: Map<string, TranscriptionResponse>) => Promise<boolean>
   
   // Download operations
   downloadTranscription: (format?: string, filename?: string) => Promise<boolean>
@@ -98,7 +100,7 @@ export interface UseWhisperAPIActions {
 export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
   // State
   const [uploadedFile, setUploadedFile] = useState<FileInfo | null>(null)
-  const [primaryFile, setPrimaryFile] = useState<FileInfo | null>(null)
+  const [primaryFiles, setPrimaryFiles] = useState<FileInfo[]>([])  // NEW: Multiple primary files
   const [secondaryFile, setSecondaryFile] = useState<FileInfo | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -107,6 +109,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   
   const [transcription, setTranscription] = useState<TranscriptionResponse | null>(null)
+  const [localTranscriptions, setLocalTranscriptions] = useState<Map<string, TranscriptionResponse>>(new Map())  // NEW: Local transcription storage
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [transcriptionProgress, setTranscriptionProgress] = useState(0)
   
@@ -196,53 +199,65 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     }
   }, [])
 
-  // Upload primary file
-  const uploadPrimaryFile = useCallback(async (file: File): Promise<boolean> => {
-    console.log('🚀 Starting primary file upload:', file.name, file.size, 'bytes')
+  // Upload multiple primary files
+  const uploadPrimaryFiles = useCallback(async (files: File[]): Promise<boolean> => {
+    console.log('🚀 Starting multiple primary files upload:', files.length, 'files')
     try {
       setIsUploading(true)
       setUploadProgress(0)
       setError(null)
       
-      console.log('📤 Uploading primary file to API...')
+      console.log('📤 Uploading multiple primary files to API...')
       
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return 90
-          }
-          return prev + 10
-        })
-      }, 100)
-
-      const response = await apiService.uploadFile(file)
+      const uploadedFiles: FileInfo[] = []
       
-      clearInterval(progressInterval)
+      // Upload files sequentially to avoid overwhelming the server
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        console.log(`📤 Uploading file ${i + 1}/${files.length}:`, file.name)
+        
+        // Update progress for each file
+        setUploadProgress((i / files.length) * 90)
+        
+        const response = await apiService.uploadFile(file)
+        
+        if (response.success && response.file_info) {
+          console.log('✅ File uploaded successfully:', response.file_info)
+          uploadedFiles.push(response.file_info)
+        } else {
+          console.error('❌ File upload failed:', response.error)
+          setError(`Failed to upload ${file.name}: ${response.error}`)
+          return false
+        }
+      }
+      
       setUploadProgress(100)
       
-      console.log('📥 Primary upload response:', response)
-      
-      if (response.success && response.file_info) {
-        console.log('✅ Primary file uploaded successfully:', response.file_info)
-        setPrimaryFile(response.file_info)
+      if (uploadedFiles.length > 0) {
+        console.log('✅ All primary files uploaded successfully:', uploadedFiles)
         
-        // Create audio URL for playback
-        const audioUrl = URL.createObjectURL(file)
+        // Append new files to existing ones instead of replacing
+        setPrimaryFiles(prevFiles => {
+          const combinedFiles = [...prevFiles, ...uploadedFiles]
+          console.log('📁 Combined files:', combinedFiles.map(f => f.original_name))
+          return combinedFiles
+        })
+        
+        // Create audio URL for first file playback (use the first file from the new uploads)
+        const audioUrl = URL.createObjectURL(files[0])
         setAudioUrl(audioUrl)
-        console.log('✅ Audio URL created for primary file playback')
+        console.log('✅ Audio URL created for first primary file playback')
         
         return true
       } else {
-        console.error('❌ Primary file upload failed:', response.error)
-        setError(response.error || 'Primary file upload failed')
+        console.error('❌ No files were uploaded successfully')
+        setError('No files were uploaded successfully')
         return false
       }
     } catch (err) {
-      console.error('💥 Primary file upload error:', err)
+      console.error('💥 Multiple primary files upload error:', err)
       const apiError = err as APIError
-      setError(apiError.message || 'Primary file upload failed')
+      setError(apiError.message || 'Multiple primary files upload failed')
       return false
     } finally {
       setIsUploading(false)
@@ -298,9 +313,9 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     }
   }, [])
 
-  // Clear primary file
+  // Clear primary file (for backward compatibility)
   const clearPrimaryFile = useCallback(() => {
-    setPrimaryFile(null)
+    setPrimaryFiles([])
     setError(null)
     // Cleanup audio URL
     if (audioUrl) {
@@ -315,19 +330,22 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     setError(null)
   }, [])
 
-  // Store primary content
+  // Store primary content (for backward compatibility - uses first file)
   const storePrimaryContent = useCallback(async (
     model: string = 'base',
     language: string = 'auto'
   ): Promise<boolean> => {
     console.log('💾 Starting store primary content...')
-    console.log('📁 Primary file:', primaryFile)
+    console.log('📁 Primary files:', primaryFiles)
     
-    if (!primaryFile) {
-      console.error('❌ No primary file uploaded for storage')
-      setError('No primary file uploaded')
+    if (!primaryFiles || primaryFiles.length === 0) {
+      console.error('❌ No primary files uploaded for storage')
+      setError('No primary files uploaded')
       return false
     }
+    
+    // Use the first file for backward compatibility
+    const firstPrimaryFile = primaryFiles[0]
     
     try {
       setIsTranscribing(true)
@@ -337,10 +355,10 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       
       // Call the store primary API with original filename
       const response = await apiService.storePrimaryContent(
-        primaryFile.file_path,
+        firstPrimaryFile.file_path,
         model,
         language,
-        primaryFile.original_name  // NEW: Pass original filename
+        firstPrimaryFile.original_name  // Pass original filename
       )
       
       console.log('📥 Store primary response:', response)
@@ -358,7 +376,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
           confidence: 0.0,
           processing_time: 0.0,
           model_used: model,
-          file_path: primaryFile?.file_path || "",
+          file_path: firstPrimaryFile?.file_path || "",
           error: undefined
         }
         console.log('📝 Transcription data to set:', transcriptionData)
@@ -406,17 +424,147 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     } finally {
       setIsTranscribing(false)
     }
-  }, [primaryFile])
+  }, [primaryFiles])
+
+  // Store multiple primary content
+  const storeMultiplePrimaryContent = useCallback(async (
+    model: string = 'base',
+    language: string = 'auto'
+  ): Promise<boolean> => {
+    console.log('💾 Starting store multiple primary content...')
+    console.log('📁 Primary files:', primaryFiles)
+    
+    if (!primaryFiles || primaryFiles.length === 0) {
+      console.error('❌ No primary files uploaded for storage')
+      setError('No primary files uploaded')
+      return false
+    }
+    
+    try {
+      setIsTranscribing(true)
+      setError(null)
+      
+      console.log('🔄 Calling store multiple primary API...')
+      
+      // Prepare file paths and original filenames
+      const filePaths = primaryFiles.map(f => f.file_path)
+      const originalFilenames = primaryFiles.map(f => f.original_name)
+      
+      // Call the store multiple primary API
+      console.log('🔄 About to call storeMultiplePrimaryContent with:', {
+        filePaths,
+        originalFilenames,
+        model,
+        language
+      })
+      
+              console.log('🔄 About to call storeMultiplePrimaryContent...')
+        console.log('📁 File paths:', filePaths)
+        console.log('📁 Original filenames:', originalFilenames)
+        console.log('🤖 Model:', model)
+        console.log('🌍 Language:', language)
+        
+        let response
+        try {
+          response = await apiService.storeMultiplePrimaryContent(
+            filePaths,
+            originalFilenames,
+            model,
+            language
+          )
+          
+          console.log('📥 Store multiple primary response:', response)
+        } catch (error) {
+          console.error('💥 Store multiple primary API call failed:', error)
+          throw error
+        }
+        
+        console.log('🔍 DEBUG: Response transcriptions field:', response.transcriptions)
+        console.log('🔍 DEBUG: Response transcriptions type:', typeof response.transcriptions)
+        console.log('🔍 DEBUG: Response transcriptions keys:', response.transcriptions ? Object.keys(response.transcriptions) : 'undefined')
+        
+        if (response.success) {
+          console.log('✅ Store multiple primary successful:', response)
+        
+        // Store transcriptions locally (NOT display)
+        const transcriptions = new Map<string, TranscriptionResponse>()
+        if (response.transcriptions) {
+          console.log('🔍 DEBUG: Response transcriptions keys:', Object.keys(response.transcriptions))
+          Object.entries(response.transcriptions).forEach(([filename, transcriptionData]) => {
+            console.log('🔍 DEBUG: Storing transcription for filename:', filename)
+            transcriptions.set(filename, {
+              success: true,
+              message: "Transcription completed",
+              text: transcriptionData.text || "",
+              segments: transcriptionData.segments || [],
+              language: transcriptionData.language || "auto",
+              confidence: 0.0,
+              processing_time: 0.0,
+              model_used: transcriptionData.model_used || model,
+              file_path: transcriptionData.file_path || "",
+              error: undefined
+            })
+          })
+        }
+        
+        console.log('🔍 DEBUG: About to set localTranscriptions with:', transcriptions)
+        setLocalTranscriptions(transcriptions)
+        console.log('📝 Local transcriptions stored:', transcriptions)
+        console.log('🔍 DEBUG: Stored keys:', Array.from(transcriptions.keys()))
+        
+        // Check if storage is happening in background
+        if (response.storage_in_progress) {
+          console.log('🔄 Storage is happening in background, showing progress...')
+          setIsStoring(true)
+          setStorageProgress(0)
+          
+          // Simulate storage progress (since we can't track real progress)
+          const progressInterval = setInterval(() => {
+            setStorageProgress(prev => {
+              if (prev >= 90) {
+                clearInterval(progressInterval)
+                return 90
+              }
+              return prev + 10
+            })
+          }, 500)
+          
+          // Stop storage progress after a reasonable time
+          setTimeout(() => {
+            clearInterval(progressInterval)
+            setStorageProgress(100)
+            setTimeout(() => {
+              setIsStoring(false)
+              setStorageProgress(0)
+            }, 1000)
+          }, 5000) // Assume storage takes ~5 seconds
+        }
+        
+        return true
+      } else {
+        console.error('❌ Store multiple primary failed:', response.error)
+        setError(response.error || 'Store multiple primary failed')
+        return false
+      }
+    } catch (err) {
+      console.error('💥 Store multiple primary error:', err)
+      const apiError = err as APIError
+      setError(apiError.message || 'Store multiple primary failed')
+      return false
+    } finally {
+      setIsTranscribing(false)
+    }
+  }, [primaryFiles])
 
   // Compare content
-  const compareContent = useCallback(async (): Promise<boolean> => {
+  const compareContent = useCallback(async (storedTranscriptions?: Map<string, TranscriptionResponse>): Promise<boolean> => {
     console.log('🔍 Starting content comparison...')
-    console.log('📁 Primary file:', primaryFile)
+    console.log('📁 Primary files:', primaryFiles)
     console.log('📁 Secondary file:', secondaryFile)
     
-    if (!primaryFile || !secondaryFile) {
-      console.error('❌ Both primary and secondary files are required for comparison')
-      setError('Both primary and secondary files are required for comparison')
+    if (!primaryFiles || primaryFiles.length === 0 || !secondaryFile) {
+      console.error('❌ Both primary files and secondary file are required for comparison')
+      setError('Both primary files and secondary file are required for comparison')
       return false
     }
     
@@ -426,15 +574,19 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       
       console.log('🔄 Calling comparison API...')
       
+      // For multiple primary files, we need to use the first file for comparison
+      // The backend will search against all stored files in Pinecone
+      const firstPrimaryFile = primaryFiles[0]
+      
       // Call the actual comparison API with original filenames
       const response = await apiService.compareContent(
-        primaryFile.file_path,
+        firstPrimaryFile.file_path,
         secondaryFile.file_path,
         0.7, // threshold
         selectedModel, // model - using selected model
         'auto',  // language
-        primaryFile.original_name,  // NEW: Pass primary original filename
-        secondaryFile.original_name  // NEW: Pass secondary original filename
+        firstPrimaryFile.original_name,  // Pass first primary original filename
+        secondaryFile.original_name  // Pass secondary original filename
       )
       
       console.log('📥 Comparison response:', response)
@@ -445,6 +597,34 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
         console.log('🔍 DEBUG: Response found:', response.found)
         console.log('🔍 DEBUG: Response majority_source_file:', response.majority_source_file)
         setComparisonResult(response)
+        
+        // Display transcription of majority file if found
+        const transcriptionsToUse = storedTranscriptions || transcriptionsRef.current
+        console.log('🔍 DEBUG: transcriptionsRef.current keys:', Array.from(transcriptionsRef.current.keys()))
+        console.log('🔍 DEBUG: storedTranscriptions keys:', storedTranscriptions ? Array.from(storedTranscriptions.keys()) : 'undefined')
+        console.log('🔍 DEBUG: transcriptionsToUse keys:', Array.from(transcriptionsToUse.keys()))
+        
+        if (response.majority_source_file && transcriptionsToUse) {
+          console.log('🔍 DEBUG: Looking for majority file:', response.majority_source_file)
+          console.log('🔍 DEBUG: Available keys in transcriptionsToUse:', Array.from(transcriptionsToUse.keys()))
+          const majorityTranscription = transcriptionsToUse.get(response.majority_source_file)
+          console.log('🔍 DEBUG: Found majority transcription:', majorityTranscription ? 'YES' : 'NO')
+          
+          if (majorityTranscription) {
+            console.log('📝 Displaying transcription of majority file:', response.majority_source_file)
+            setTranscription(majorityTranscription)
+          } else {
+            console.log('⚠️ Majority file transcription not found in local storage:', response.majority_source_file)
+            console.log('🔍 DEBUG: Available transcriptions:', Array.from(transcriptionsToUse.entries()).map(([key, value]) => ({ key, hasText: !!value.text, hasSegments: !!value.segments })))
+            
+            // FALLBACK: Try to find any transcription if majority file not found
+            if (transcriptionsToUse.size > 0) {
+              const firstTranscription = Array.from(transcriptionsToUse.values())[0]
+              console.log('🔄 FALLBACK: Using first available transcription:', firstTranscription)
+              setTranscription(firstTranscription)
+            }
+          }
+        }
         
         // Debug: Print transcriptions of both files
         console.log('🔍 SECONDARY TRANSCRIPTION:', response.secondary_text)
@@ -469,7 +649,21 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     } finally {
       setIsComparing(false)
     }
-  }, [primaryFile, secondaryFile, selectedModel])
+  }, [primaryFiles, secondaryFile, selectedModel, localTranscriptions])
+
+  // Clear primary files
+  const clearPrimaryFiles = useCallback(() => {
+    console.log('🧹 DEBUG: Clearing primary files and local transcriptions')
+    setPrimaryFiles([])
+    setLocalTranscriptions(new Map())
+    setTranscription(null)
+    setError(null)
+    // Cleanup audio URL
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl)
+      setAudioUrl(null)
+    }
+  }, [audioUrl])
 
   // Clear uploaded file (for backward compatibility)
   const clearFile = useCallback(() => {
@@ -483,23 +677,26 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     }
   }, [audioUrl])
 
-  // Transcribe file
+  // Transcribe file (for backward compatibility - uses first file)
   const transcribeFile = useCallback(async (
     model: string = 'base',
     language: string = 'auto'
   ): Promise<boolean> => {
     console.log('🎯 Starting transcription with model:', model, 'language:', language)
-    console.log('📁 Primary file:', primaryFile)
+    console.log('📁 Primary files:', primaryFiles)
     
-    if (!primaryFile) {
-      console.error('❌ No primary file uploaded for transcription')
-      setError('No primary file uploaded')
+    if (!primaryFiles || primaryFiles.length === 0) {
+      console.error('❌ No primary files uploaded for transcription')
+      setError('No primary files uploaded')
       return false
     }
     
+    // Use the first file for backward compatibility
+    const firstPrimaryFile = primaryFiles[0]
+    
     // Allow transcription even with duration 0 (might be a short file)
-    console.log('📊 File duration:', primaryFile.duration, 'seconds')
-    if (primaryFile.duration === 0) {
+    console.log('📊 File duration:', firstPrimaryFile.duration, 'seconds')
+    if (firstPrimaryFile.duration === 0) {
       console.log('⚠️ File duration is 0, but proceeding with transcription...')
     }
 
@@ -522,7 +719,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       }, 200)
 
       const response = await apiService.transcribeFile(
-        primaryFile.file_path,
+        firstPrimaryFile.file_path,
         model,
         language
       )
@@ -550,18 +747,21 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       setIsTranscribing(false)
       setTimeout(() => setTranscriptionProgress(0), 1000)
     }
-  }, [primaryFile])
+  }, [primaryFiles])
 
-  // Detect language
+  // Detect language (for backward compatibility - uses first file)
   const detectLanguage = useCallback(async (): Promise<boolean> => {
-    if (!primaryFile) {
-      setError('No primary file uploaded')
+    if (!primaryFiles || primaryFiles.length === 0) {
+      setError('No primary files uploaded')
       return false
     }
 
+    // Use the first file for backward compatibility
+    const firstPrimaryFile = primaryFiles[0]
+
     try {
       setError(null)
-      const response = await apiService.detectLanguage(primaryFile.file_path)
+      const response = await apiService.detectLanguage(firstPrimaryFile.file_path)
       
       if (response.success) {
         // Update transcription with detected language
@@ -581,7 +781,7 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       setError(apiError.message || 'Language detection failed')
       return false
     }
-  }, [primaryFile, transcription])
+  }, [primaryFiles, transcription])
 
   // Download transcription
   const downloadTranscription = useCallback(async (
@@ -633,6 +833,21 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
       setIsLoadingFormats(false)
     }
   }, [])
+
+  // Monitor localTranscriptions changes
+  useEffect(() => {
+    console.log('🔍 DEBUG: localTranscriptions changed:', localTranscriptions)
+    console.log('🔍 DEBUG: localTranscriptions size:', localTranscriptions.size)
+    console.log('🔍 DEBUG: localTranscriptions keys:', Array.from(localTranscriptions.keys()))
+  }, [localTranscriptions])
+
+  // Store transcriptions in a ref to avoid state reset issues
+  const transcriptionsRef = useRef<Map<string, TranscriptionResponse>>(new Map())
+  
+  // Update ref when localTranscriptions changes
+  useEffect(() => {
+    transcriptionsRef.current = localTranscriptions
+  }, [localTranscriptions])
 
   // Load available models
   const loadAvailableModels = useCallback(async () => {
@@ -692,12 +907,13 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
   return {
     // State
     uploadedFile,
-    primaryFile,
+    primaryFiles,  // NEW: Multiple primary files
     secondaryFile,
     isUploading,
     uploadProgress,
     audioUrl,
     transcription,
+    localTranscriptions,  // NEW: Local transcription storage
     isTranscribing,
     transcriptionProgress,
     isStoring, // NEW: Expose storage progress state
@@ -714,14 +930,15 @@ export function useWhisperAPI(): UseWhisperAPIState & UseWhisperAPIActions {
     
     // Actions
     uploadFile,
-    uploadPrimaryFile,
+    uploadPrimaryFiles,  // NEW: Multiple file upload
     uploadSecondaryFile,
     clearFile,
-    clearPrimaryFile,
+    clearPrimaryFiles,  // NEW: Clear multiple files
     clearSecondaryFile,
     transcribeFile,
     detectLanguage,
     storePrimaryContent,
+    storeMultiplePrimaryContent,  // NEW: Store multiple files
     clearEmbeddings,
     compareContent,
     downloadTranscription,

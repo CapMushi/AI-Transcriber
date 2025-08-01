@@ -15,6 +15,7 @@ interface TranscriptionOutputProps {
 export function TranscriptionOutput({ transcription }: TranscriptionOutputProps) {
   const {
     uploadedFile,
+    primaryFiles,
     isTranscribing,
     transcriptionProgress,
     transcribeFile,
@@ -39,6 +40,9 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
   // Debug logging
   console.log('📝 TranscriptionOutput - transcription:', transcription)
   console.log('📝 TranscriptionOutput - comparisonResult:', comparisonResult)
+  console.log('📝 TranscriptionOutput - isStoring:', isStoring)
+  console.log('📝 TranscriptionOutput - isComparing:', isComparing)
+  console.log('📝 TranscriptionOutput - storageProgress:', storageProgress)
 
   // Function to check if a segment should be highlighted based on comparison timestamps
   const shouldHighlightSegment = (segmentStart: number, segmentEnd: number): boolean => {
@@ -115,7 +119,7 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
   }
 
   // Check if download button should be enabled
-  const isDownloadEnabled = uploadedFile && transcription && !isTranscribing
+  const isDownloadEnabled = (uploadedFile || (primaryFiles && primaryFiles.length > 0)) && transcription && !isTranscribing
 
   if (isTranscribing) {
     return (
@@ -416,6 +420,25 @@ export function TranscriptionOutput({ transcription }: TranscriptionOutputProps)
         </div>
 
         {/* Right Column: Timestamp Sidebar */}
+        {comparisonResult && (
+          <div className="w-48 flex-shrink-0 bg-dark-secondary/20 border border-dark-secondary/30 rounded-lg p-3 overflow-y-auto" style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255, 87, 34, 0.3) rgba(45, 64, 89, 0.2)'
+          }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Search className="h-4 w-4 text-accent-orange" />
+              <h3 className="text-sm font-semibold text-light-gray">Debug: Comparison Result</h3>
+            </div>
+            
+            <div className="text-xs text-light-gray/70">
+              <div>Found: {comparisonResult.found ? 'Yes' : 'No'}</div>
+              <div>Timestamps: {comparisonResult.timestamps?.length || 0}</div>
+              <div>Majority: {comparisonResult.majority_source_file || 'None'}</div>
+              <div>Confidence: {comparisonResult.confidence ? (comparisonResult.confidence * 100).toFixed(1) + '%' : 'N/A'}</div>
+            </div>
+          </div>
+        )}
+        
         {comparisonResult && comparisonResult.found && comparisonResult.timestamps && comparisonResult.timestamps.length > 0 && (
           <div className="w-48 flex-shrink-0 bg-dark-secondary/20 border border-dark-secondary/30 rounded-lg p-3 overflow-y-auto" style={{
             scrollbarWidth: 'thin',

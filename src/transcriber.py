@@ -87,6 +87,15 @@ class WhisperTranscriber:
         try:
             audio_path = Path(audio_path)
             
+            # Validate audio file before transcription
+            if not self._validate_audio_file(audio_path):
+                return {
+                    "success": False,
+                    "error": "Audio file validation failed - file may be corrupted, too short, or contain no audio",
+                    "file_path": str(audio_path),
+                    "model_used": self.model_name
+                }
+            
             # Start timing
             start_time = time.time()
             
@@ -97,9 +106,20 @@ class WhisperTranscriber:
             if task == "translate":
                 options["task"] = "translate"
             
-            # Perform transcription
+            # Perform transcription with error handling
             print(f"Transcribing: {audio_path.name}")
-            result = self.model.transcribe(str(audio_path), **options)
+            try:
+                result = self.model.transcribe(str(audio_path), **options)
+            except RuntimeError as e:
+                if "reshape" in str(e).lower() or "tensor" in str(e).lower():
+                    return {
+                        "success": False,
+                        "error": f"Audio processing failed: File may be corrupted, too short, or contain no valid audio content. Try a different file or check the audio quality.",
+                        "file_path": str(audio_path),
+                        "model_used": self.model_name
+                    }
+                else:
+                    raise e
             
             # Calculate processing time
             processing_time = time.time() - start_time
@@ -168,6 +188,66 @@ class WhisperTranscriber:
                 "model_name": self.model_name,
                 "model_loaded": self.model_loaded
             }
+    
+    def _validate_audio_file(self, audio_path: Path) -> bool:
+        """
+        Validate audio file before transcription
+        
+        Args:
+            audio_path: Path to the audio file
+            
+        Returns:
+            True if file is valid for transcription, False otherwise
+        """
+        try:
+            # Check if file exists
+            if not audio_path.exists():
+                print(f"❌ Audio file does not exist: {audio_path}")
+                return False
+            
+            # Check file size (minimum 1KB to avoid empty files)
+            file_size = audio_path.stat().st_size
+            if file_size < 1024:  # 1KB
+                print(f"❌ Audio file too small ({file_size} bytes): {audio_path}")
+                return False
+            
+            # Check if file is readable
+            try:
+                with open(audio_path, 'rb') as f:
+                    # Read first few bytes to check if file is accessible
+                    f.read(1024)
+            except Exception as e:
+                print(f"❌ Cannot read audio file: {audio_path}, error: {e}")
+                return False
+            
+            # Try to get basic audio info using ffmpeg
+            try:
+                import subprocess
+                result = subprocess.run([
+                    "ffmpeg", "-i", str(audio_path), "-f", "null", "-"
+                ], capture_output=True, text=True, timeout=30)
+                
+                if result.returncode != 0:
+                    print(f"❌ Audio file validation failed: {audio_path}")
+                    print(f"FFmpeg error: {result.stderr}")
+                    return False
+                
+                print(f"✅ Audio file validation passed: {audio_path}")
+                return True
+                
+            except subprocess.TimeoutExpired:
+                print(f"⚠️ Audio file validation timed out: {audio_path}")
+                return True  # Allow to proceed if validation times out
+            except FileNotFoundError:
+                print(f"⚠️ FFmpeg not found, skipping audio validation for: {audio_path}")
+                return True  # Allow to proceed if ffmpeg not available
+            except Exception as e:
+                print(f"⚠️ Audio validation error: {e}, proceeding anyway: {audio_path}")
+                return True  # Allow to proceed if validation fails
+                
+        except Exception as e:
+            print(f"❌ Audio file validation error: {e}")
+            return False
     
     def detect_language(self, audio_path: Union[str, Path]) -> Dict[str, Any]:
         """

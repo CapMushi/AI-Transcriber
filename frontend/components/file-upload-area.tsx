@@ -12,17 +12,17 @@ export function FileUploadArea() {
   const [isDragOverSecondary, setIsDragOverSecondary] = useState(false)
   const {
     uploadedFile,
-    primaryFile,
+    primaryFiles,
     secondaryFile,
     isUploading,
     uploadProgress,
     error,
     supportedFormats,
     uploadFile,
-    uploadPrimaryFile,
+    uploadPrimaryFiles,
     uploadSecondaryFile,
     clearFile,
-    clearPrimaryFile,
+    clearPrimaryFiles,
     clearSecondaryFile,
     loadSupportedFormats,
     clearError
@@ -57,15 +57,19 @@ export function FileUploadArea() {
       return
     }
     
-    const file = files[0]
-    console.log('📁 Selected file:', { name: file.name, size: file.size, type: file.type, isPrimary })
     console.log('🔄 Calling upload function...')
     
     // Use appropriate upload function based on file type
     if (isPrimary) {
-      const result = await uploadPrimaryFile(file)
+      // Convert FileList to Array for multiple file upload
+      const fileArray = Array.from(files)
+      console.log('📁 Selected files for primary:', fileArray.map(f => f.name))
+      const result = await uploadPrimaryFiles(fileArray)
       console.log('📤 Primary upload result:', result)
     } else {
+      // Secondary still uses single file
+      const file = files[0]
+      console.log('📁 Selected file for secondary:', { name: file.name, size: file.size, type: file.type })
       const result = await uploadSecondaryFile(file)
       console.log('📤 Secondary upload result:', result)
     }
@@ -124,25 +128,29 @@ export function FileUploadArea() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
         {/* Primary Column */}
         <div className="flex flex-col gap-4">
-          {/* Primary File Info */}
-          {primaryFile && !isUploading && (
+          {/* Primary Files Info */}
+          {primaryFiles && primaryFiles.length > 0 && !isUploading && (
             <div className="p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className="h-5 w-5 text-green-400" />
-                <span className="text-green-300 font-semibold">Primary File Uploaded</span>
+                <span className="text-green-300 font-semibold">Primary Files Uploaded ({primaryFiles.length})</span>
               </div>
-              <div className="text-sm text-light-gray space-y-1">
-                <p><span className="text-accent-orange">Name:</span> {primaryFile.original_name}</p>
-                <p><span className="text-accent-orange">Size:</span> {primaryFile.size_mb.toFixed(2)} MB</p>
-                <p><span className="text-accent-orange">Duration:</span> {primaryFile.duration.toFixed(1)}s</p>
-                <p><span className="text-accent-orange">Type:</span> {primaryFile.is_audio ? 'Audio' : 'Video'} ({primaryFile.format})</p>
+              <div className="text-sm text-light-gray space-y-2">
+                {primaryFiles.map((file, index) => (
+                  <div key={index} className="border-l-2 border-accent-orange/30 pl-2">
+                    <p><span className="text-accent-orange">Name:</span> {file.original_name}</p>
+                    <p><span className="text-accent-orange">Size:</span> {file.size_mb.toFixed(2)} MB</p>
+                    <p><span className="text-accent-orange">Duration:</span> {file.duration.toFixed(1)}s</p>
+                    <p><span className="text-accent-orange">Type:</span> {file.is_audio ? 'Audio' : 'Video'} ({file.format})</p>
+                  </div>
+                ))}
               </div>
               <button
-                onClick={clearPrimaryFile}
+                onClick={clearPrimaryFiles}
                 className="mt-2 text-red-400 hover:text-red-300 text-sm flex items-center gap-1"
               >
                 <X className="h-4 w-4" />
-                Remove Primary File
+                Remove All Primary Files
               </button>
             </div>
           )}
@@ -176,21 +184,22 @@ export function FileUploadArea() {
               </div>
               <p className="text-light-gray text-sm mb-4">
                 <label htmlFor="primary-file-upload" className="cursor-pointer text-accent-orange font-semibold hover:underline">
-                  Upload Primary File
+                  Add Primary Files
                 </label>{" "}
-                or drag and drop here.
+                or drag and drop here. (Files will be added to existing ones)
               </p>
               
               <input 
                 id="primary-file-upload" 
                 type="file" 
+                multiple
                 className="hidden" 
                 onChange={(e) => handleFileSelect(e, true)} 
                 accept="audio/*,video/*" 
               />
               <GlassButton asChild className="mt-2 px-4 py-2 border-accent-orange/30 hover:bg-accent-orange/20 text-sm">
                 <label htmlFor="primary-file-upload" className="cursor-pointer">
-                  Select Primary File
+                  Add Primary Files
                 </label>
               </GlassButton>
             </div>

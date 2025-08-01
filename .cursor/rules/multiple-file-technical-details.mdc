@@ -1,0 +1,349 @@
+# Multiple File Upload - Technical Implementation Details
+
+## 🔧 **Core Implementation Patterns**
+
+### **Frontend State Management**
+
+#### **File: [frontend/hooks/use-whisper-api.ts](mdc:frontend/hooks/use-whisper-api.ts)**
+
+**State Interface Updates:**
+```typescript
+export interface UseWhisperAPIState {
+  // OLD: Single file
+  primaryFile: FileInfo | null
+  
+  // NEW: Multiple files
+  primaryFiles: FileInfo[]
+  
+  // NEW: Local transcription storage
+  localTranscriptions: Map<string, TranscriptionResponse>
+  
+  // Existing fields remain unchanged
+  secondaryFile: FileInfo | null
+  transcription: TranscriptionResponse | null
+  // ... other existing fields
+}
+
+export interface UseWhisperAPIActions {
+  // OLD: Single file upload
+  uploadPrimaryFile: (file: File) => Promise<boolean>
+  
+  // NEW: Multiple file upload
+  uploadPrimaryFiles: (files: File[]) => Promise<boolean>
+  
+  // NEW: Store multiple files
+  storeMultiplePrimaryContent: (model?: string, language?: string) => Promise<boolean>
+  
+  // Existing actions remain unchanged
+  uploadSecondaryFile: (file: File) => Promise<boolean>
+  compareContent: () => Promise<boolean>
+  // ... other existing actions
+}
+```
+
+**Implementation Pattern:**
+```typescript
+// State initialization
+const [primaryFiles, setPrimaryFiles] = useState<FileInfo[]>([])
+const [localTranscriptions, setLocalTranscriptions] = useState<Map<string, TranscriptionResponse>>(new Map())
+
+// Multiple file upload
+const uploadPrimaryFiles = useCallback(async (files: File[]): Promise<boolean> => {
+  const uploadedFiles: FileInfo[] = []
+  
+  for (const file of files) {
+    const success = await uploadFile(file)
+    if (success && uploadedFile) {
+      uploadedFiles.push(uploadedFile)
+    }
+  }
+  
+  setPrimaryFiles(uploadedFiles)
+  return uploadedFiles.length > 0
+}, [uploadFile])
+
+// Store multiple files
+const storeMultiplePrimaryContent = useCallback(async (model?: string, language?: string): Promise<boolean> => {
+  if (primaryFiles.length === 0) return false
+  
+  const filePaths = primaryFiles.map(f => f.file_path)
+  const originalFilenames = primaryFiles.map(f => f.original_name)
+  
+  const response = await apiService.storeMultiplePrimaryContent(
+    filePaths,
+    originalFilenames,
+    model || selectedModel,
+    language || 'auto'
+  )
+  
+  if (response.success) {
+    // Store transcriptions locally (NOT display)
+    const transcriptions = new Map<string, TranscriptionResponse>()
+    response.transcriptions.forEach((transcription, filename) => {
+      transcriptions.set(filename, transcription)
+    })
+    setLocalTranscriptions(transcriptions)
+  }
+  
+  return response.success
+}, [primaryFiles, selectedModel])
+```
+
+### **Backend API Implementation**
+
+#### **File: [api/routes/transcribe.py](mdc:api/routes/transcribe.py)**
+
+**New Request/Response Models:**
+```python
+class StoreMultiplePrimaryRequest(BaseModel):
+    file_paths: List[str]
+    original_filenames: List[str]
+    model: str = "base"
+    language: str = "auto"
+
+class StoreMultiplePrimaryResponse(BaseModel):
+    success: bool
+    message: str
+    files_processed: int
+    storage_in_progress: bool
+    transcriptions: Dict[str, Dict[str, Any]] = {}  # filename -> transcription data
+```
+
+**Implementation Pattern:**
+```python
+@router.post("/store-multiple-primary", response_model=StoreMultiplePrimaryResponse)
+async def store_multiple_primary_content(request: StoreMultiplePrimaryRequest):
+    try:
+        # Validate files
+        for file_path in request.file_paths:
+            is_valid, error_msg = audio_processor.validate_file(file_path)
+            if not is_valid:
+                return StoreMultiplePrimaryResponse(
+                    success=False,
+                    message="File validation failed",
+                    error=error_msg
+                )
+        
+        # Prepare transcription tasks
+        transcription_tasks = [
+            (file_path, request.model, request.language, "transcribe")
+            for file_path in request.file_paths
+        ]
+        
+        # Use existing parallel transcription
+        transcription_results = await _transcribe_parallel(
+            transcription_tasks, 
+            max_workers=len(request.file_paths)
+        )
+        
+        # Process each transcription result
+        transcriptions = {}
+        total_chunks = 0
+        
+        for i, result in enumerate(transcription_results):
+            if result.get("success", False):
+                original_filename = request.original_filenames[i]
+                file_path = request.file_paths[i]
+                
+                # Store transcription locally (for frontend)
+                transcriptions[original_filename] = {
+                    "text": result.get("text", ""),
+                    "segments": result.get("segments", []),
+                    "language": result.get("language", ""),
+                    "model_used": result.get("model_used", ""),
+                    "file_path": file_path
+                }
+                
+                # Generate and upsert chunks (background)
+                file_info = audio_processor.get_file_info(file_path)
+                file_metadata = vector_handler.prepare_file_metadata(
+                    original_filename=original_filename,
+                    file_info=file_info
+                )
+                
+                # Use existing chunk generation
+                chunks = vector_handler.generate_chunks(result)
+                
+                # Use existing upserting (already supports parallel)
+                upsert_result = await vector_handler.upsert_chunks_parallel(
+                    chunks, file_metadata
+                )
+                
+                if upsert_result.get("success", False):
+                    total_chunks += upsert_result.get("chunks_stored", 0)
+        
+        return StoreMultiplePrimaryResponse(
+            success=True,
+            message=f"Successfully processed {len(transcriptions)} files",
+            files_processed=len(transcriptions),
+            storage_in_progress=True,
+            transcriptions=transcriptions
+        )
+        
+    except Exception as e:
+        return StoreMultiplePrimaryResponse(
+            success=False,
+            message="Store multiple primary failed",
+            error=str(e)
+        )
+```
+
+### **API Service Updates**
+
+#### **File: [frontend/lib/api.ts](mdc:frontend/lib/api.ts)**
+
+**New Interface:**
+```typescript
+export interface StoreMultiplePrimaryRequest {
+  file_paths: string[]
+  original_filenames: string[]
+  model: string
+  language: string
+}
+
+export interface StoreMultiplePrimaryResponse {
+  success: boolean
+  message: string
+  files_processed: number
+  storage_in_progress: boolean
+  transcriptions: Record<string, any>
+  error?: string
+}
+```
+
+**Implementation Pattern:**
+```typescript
+class APIService {
+  // ... existing methods
+  
+  async storeMultiplePrimaryContent(
+    filePaths: string[],
+    originalFilenames: string[],
+    model: string = "base",
+    language: string = "auto"
+  ): Promise<StoreMultiplePrimaryResponse> {
+    const response = await fetch(`${this.baseUrl}/store-multiple-primary`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        file_paths: filePaths,
+        original_filenames: originalFilenames,
+        model,
+        language
+      }),
+    })
+    
+    return response.json()
+  }
+}
+```
+
+### **Display Logic Updates**
+
+#### **File: [frontend/components/transcription-output.tsx](mdc:frontend/components/transcription-output.tsx)**
+
+**Implementation Pattern:**
+```typescript
+// After comparison, display majority file transcription
+useEffect(() => {
+  if (comparisonResult?.majority_source_file && localTranscriptions) {
+    const majorityTranscription = localTranscriptions.get(comparisonResult.majority_source_file)
+    if (majorityTranscription) {
+      setTranscription(majorityTranscription)
+    }
+  }
+}, [comparisonResult?.majority_source_file, localTranscriptions])
+```
+
+### **File Upload UI Updates**
+
+#### **File: [frontend/components/file-upload-area.tsx](mdc:frontend/components/file-upload-area.tsx)**
+
+**Implementation Pattern:**
+```typescript
+// Change from single file to multiple files
+const handleFileUpload = (files: FileList | null) => {
+  if (files) {
+    const fileArray = Array.from(files)
+    uploadPrimaryFiles(fileArray)
+  }
+}
+
+// Update input element
+<input
+  type="file"
+  multiple
+  accept="audio/*,video/*"
+  onChange={(e) => handleFileUpload(e.target.files)}
+  className="hidden"
+/>
+```
+
+## 🔄 **Parallel Processing Patterns**
+
+### **Transcription Parallel Processing:**
+```python
+# Reuse existing _transcribe_parallel function
+async def _transcribe_parallel(files: List[Tuple[str, str, str, str]], max_workers: int = 2):
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        loop = asyncio.get_event_loop()
+        tasks = [
+            loop.run_in_executor(executor, _transcribe_single_file, *file_data)
+            for file_data in files
+        ]
+        return await asyncio.gather(*tasks)
+```
+
+### **Chunk Generation Parallel Processing:**
+```python
+# Use existing vector_handler.generate_chunks for each file
+async def generate_chunks_parallel(transcription_results: List[Dict[str, Any]]):
+    with ThreadPoolExecutor(max_workers=len(transcription_results)) as executor:
+        loop = asyncio.get_event_loop()
+        tasks = [
+            loop.run_in_executor(executor, vector_handler.generate_chunks, result)
+            for result in transcription_results
+        ]
+        return await asyncio.gather(*tasks)
+```
+
+### **Upserting Parallel Processing:**
+```python
+# Use existing vector_handler.upsert_chunks_parallel
+async def upsert_chunks_parallel(chunks_list: List[List[Dict]], metadata_list: List[Dict]):
+    with ThreadPoolExecutor(max_workers=len(chunks_list)) as executor:
+        loop = asyncio.get_event_loop()
+        tasks = [
+            loop.run_in_executor(executor, vector_handler.upsert_chunks, chunks, metadata)
+            for chunks, metadata in zip(chunks_list, metadata_list)
+        ]
+        return await asyncio.gather(*tasks)
+```
+
+## 🎯 **Key Implementation Notes**
+
+### **Memory Management:**
+- Use `Map<string, TranscriptionResponse>` for efficient local storage
+- Clear local transcriptions when new files are uploaded
+- Implement proper cleanup for large file sets
+
+### **Error Handling:**
+- Handle partial failures in parallel processing
+- Provide detailed error messages for failed files
+- Maintain existing error patterns
+
+### **Performance Optimization:**
+- Use appropriate `max_workers` based on system capabilities
+- Implement batch processing for large file sets
+- Monitor memory usage during parallel processing
+
+### **Backward Compatibility:**
+- Maintain existing single file upload functionality
+- Ensure comparison logic works with both single and multiple files
+- Preserve existing API endpoints
+description:
+globs:
+alwaysApply: false
+---

@@ -121,10 +121,68 @@ class VectorHandler:
                 "error": f"Search failed: {str(e)}"
             }
     
-    async def store_primary_content(self,
-                                   file_id: str,
-                                   transcription_data: Dict[str, Any],
-                                   file_metadata: Dict[str, Any]) -> Dict[str, Any]:
+    async def store_primary_content_async(self,
+                                         file_id: str,
+                                         transcription_data: Dict[str, Any],
+                                         file_metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Store primary content in Pinecone (async version for parallel processing)
+        
+        Args:
+            file_id: Unique identifier for the file
+            transcription_data: Transcription result from Whisper
+            file_metadata: File information metadata
+            
+        Returns:
+            Dictionary with storage result
+        """
+        try:
+            # Validate that we have transcription data
+            if not transcription_data.get("success", False):
+                return {
+                    "success": False,
+                    "error": "No successful transcription data to store"
+                }
+            
+            # Validate that we have segments
+            segments = transcription_data.get("segments", [])
+            if not segments:
+                return {
+                    "success": False,
+                    "error": "No segments found in transcription data"
+                }
+            
+            # Store primary content chunks in Pinecone (synchronous call)
+            success = self.vector_store.store_transcription_chunks(
+                file_id=file_id,
+                transcription_data=transcription_data,
+                file_metadata=file_metadata
+            )
+            
+            if success:
+                return {
+                    "success": True,
+                    "message": f"Stored primary content for file {file_id}",
+                    "file_id": file_id,
+                    "chunks_stored": len(segments),
+                    "embeddings_cleared": False
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Failed to store primary content in Pinecone"
+                }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Primary content storage error: {str(e)}"
+            }
+
+    def store_primary_content(self,
+                             file_id: str,
+                             transcription_data: Dict[str, Any],
+                             file_metadata: Dict[str, Any]) -> Dict[str, Any]:
         """
         Store primary content in Pinecone
         
@@ -152,7 +210,7 @@ class VectorHandler:
                     "error": "No segments found in transcription data"
                 }
             
-            # Store primary content chunks in Pinecone
+            # Store primary content chunks in Pinecone (synchronous call)
             success = self.vector_store.store_transcription_chunks(
                 file_id=file_id,
                 transcription_data=transcription_data,
@@ -269,7 +327,7 @@ class VectorHandler:
                 threshold=threshold
             )
             
-            print(f"🔍 DEBUG: VectorHandler optimized search result: {search_result}")
+            
             return search_result
                 
         except Exception as e:

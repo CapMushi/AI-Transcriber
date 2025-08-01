@@ -423,7 +423,7 @@ class PineconeVectorStore:
                         "adjusted_threshold": adjusted_threshold,
                         "processing_mode": "parallel_optimized"  # Indicate parallel processing was used
                     }
-                    print(f"🔍 DEBUG: OPTIMIZED Final result: {result}")
+                    
                     return result
 
                 except Exception as e:
@@ -524,6 +524,8 @@ class PineconeVectorStore:
             has_content_overlap = self._check_content_overlap(chunk_text, match_text)
             
             print(f"🔍 DEBUG: Optimized match check - Confidence: {confidence:.3f}, Overlap: {has_content_overlap}")
+            print(f"🔍 DEBUG: Secondary text: '{chunk_text[:50]}...'")
+            print(f"🔍 DEBUG: Primary text: '{match_text[:50]}...'")
             
             if has_content_overlap:
                 optimized_matches.append(match)
@@ -592,6 +594,11 @@ class PineconeVectorStore:
         secondary_words = set(re.findall(r'\b\w+\b', secondary_clean))
         primary_words = set(re.findall(r'\b\w+\b', primary_clean))
         
+        # Filter out common stop words that don't indicate meaningful overlap
+        stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them'}
+        secondary_words = secondary_words - stop_words
+        primary_words = primary_words - stop_words
+        
         # Calculate word overlap
         if not secondary_words:
             return False
@@ -609,8 +616,13 @@ class PineconeVectorStore:
             min_overlap_ratio = 0.5  # 50% for medium content
         
         print(f"🔍 DEBUG: Content overlap check - Secondary words: {len(secondary_words)}, Overlap: {len(overlap_words)}, Ratio: {overlap_ratio:.2f}, Required: {min_overlap_ratio:.2f}")
+        print(f"🔍 DEBUG: Secondary words: {secondary_words}")
+        print(f"🔍 DEBUG: Primary words: {primary_words}")
+        print(f"🔍 DEBUG: Overlap words: {overlap_words}")
         
-        return overlap_ratio >= min_overlap_ratio
+        result = overlap_ratio >= min_overlap_ratio
+        print(f"🔍 DEBUG: Overlap result: {result}")
+        return result
     
     def _chunk_secondary_text(self, secondary_transcription: Dict[str, Any]) -> list:
         """

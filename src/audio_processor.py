@@ -324,11 +324,22 @@ class AudioProcessor:
                 '-ar', '16000',          # Lower sample rate
                 '-f', 'wav',             # WAV format for faster processing
                 '-y', str(output_path)   # Overwrite output
-            ], capture_output=True, text=True)
+            ], capture_output=True, text=True, timeout=60)  # Add timeout
             
             if result.returncode != 0:
+                print(f"❌ FFmpeg extraction failed for {video_path}")
+                print(f"FFmpeg stderr: {result.stderr}")
                 raise Exception(f"FFmpeg error: {result.stderr}")
             
+            # Verify the output file exists and has content
+            if not output_path.exists():
+                raise Exception("FFmpeg extraction completed but output file doesn't exist")
+            
+            output_size = output_path.stat().st_size
+            if output_size < 1024:  # Less than 1KB
+                raise Exception(f"FFmpeg extraction produced very small file ({output_size} bytes)")
+            
+            print(f"✅ Fast video extraction successful: {video_path} -> {output_path} ({output_size} bytes)")
             return True, str(output_path)
             
         except Exception as e:
@@ -367,12 +378,25 @@ class AudioProcessor:
                 '-ar', '16000',          # Lower sample rate
                 '-f', 'wav',             # WAV format for faster processing
                 '-y', str(output_path)   # Overwrite output
-            ], capture_output=True, text=True)
+            ], capture_output=True, text=True, timeout=60)  # Add timeout
             
             if result.returncode != 0:
+                print(f"❌ FFmpeg conversion failed for {audio_path}")
+                print(f"FFmpeg stderr: {result.stderr}")
                 raise Exception(f"FFmpeg error: {result.stderr}")
             
+            # Verify the output file exists and has content
+            if not output_path.exists():
+                raise Exception("FFmpeg conversion completed but output file doesn't exist")
+            
+            output_size = output_path.stat().st_size
+            if output_size < 1024:  # Less than 1KB
+                raise Exception(f"FFmpeg conversion produced very small file ({output_size} bytes)")
+            
+            print(f"✅ Fast audio conversion successful: {audio_path} -> {output_path} ({output_size} bytes)")
             return True, str(output_path)
             
+        except subprocess.TimeoutExpired:
+            return False, f"Audio conversion timed out for {audio_path}"
         except Exception as e:
             return False, f"Error converting audio: {str(e)}" 

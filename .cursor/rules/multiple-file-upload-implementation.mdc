@@ -1,0 +1,243 @@
+# Multiple File Upload Implementation Plan
+
+## 🎯 **Core Objective**
+Implement multiple primary file uploads with parallel processing while maintaining existing functionality and performance.
+
+## 📋 **Key Principles**
+
+### **Minimal Changes Required**
+- **NO CHANGES** to existing transcription, chunking, and upserting methods
+- **NO CHANGES** to retrieval and comparison logic
+- **NO CHANGES** to frontend color palette and UI design
+- **Reuse existing parallel processing functions** for multiple files in parallel
+- **Maintain current API structure** with minimal modifications
+
+### **Performance Requirements**
+- **Parallel transcription** for multiple files
+- **Parallel chunk generation** using existing functions
+- **Parallel upserting** using existing functions
+- **Efficient time performance** with minimal overhead
+
+## 🔄 **Workflow Changes**
+
+### **Current Single File Flow:**
+1. Upload Primary File → Frontend stores file
+2. Transcribe → Whisper processes
+3. **Display Transcription** → Shows immediately in UI
+4. Store Chunks → Background process
+5. Compare → Search against stored chunks
+6. Show Results → Display matches
+
+### **New Multiple File Flow:**
+1. Upload Multiple Primary Files → Frontend stores multiple files
+2. **Parallel Transcription** → Whisper processes all files simultaneously
+3. **Local Storage** → Store transcriptions locally (NOT displayed)
+4. **Parallel Chunk Generation** → Generate chunks for all files
+5. **Parallel Upserting** → Store all chunks in Pinecone
+6. Compare → Search against all stored chunks (NO CHANGES)
+7. **Show Majority File** → Display transcription of file with most matches
+8. **Highlight Matches** → Highlight based on majority file
+
+## 🏗️ **Implementation Plan**
+
+### **Phase 1: Frontend State Updates**
+
+#### **File: [frontend/hooks/use-whisper-api.ts](mdc:frontend/hooks/use-whisper-api.ts)**
+
+**Changes Required:**
+```typescript
+// OLD: Single file
+primaryFile: FileInfo | null
+
+// NEW: Multiple files
+primaryFiles: FileInfo[]
+
+// NEW: Local transcription storage
+localTranscriptions: Map<string, TranscriptionResponse>
+
+// NEW: Multiple file upload action
+uploadPrimaryFiles: (files: File[]) => Promise<boolean>
+```
+
+**Key Points:**
+- Store transcriptions locally in `Map<string, TranscriptionResponse>`
+- **DO NOT display** transcriptions immediately
+- Only display transcription of majority file after comparison
+
+### **Phase 2: Backend API Updates**
+
+#### **File: [api/routes/transcribe.py](mdc:api/routes/transcribe.py)**
+
+**New Endpoint Required:**
+```python
+@router.post("/store-multiple-primary", response_model=StoreMultiplePrimaryResponse)
+async def store_multiple_primary_content(request: StoreMultiplePrimaryRequest):
+    # Use existing _transcribe_parallel function
+    # Use existing chunk generation in parallel
+    # Use existing upserting in parallel
+    # Return success without displaying transcriptions
+```
+
+**New Request/Response Models:**
+```python
+class StoreMultiplePrimaryRequest(BaseModel):
+    file_paths: List[str]
+    original_filenames: List[str]
+    model: str = "base"
+    language: str = "auto"
+
+class StoreMultiplePrimaryResponse(BaseModel):
+    success: bool
+    message: str
+    files_processed: int
+    storage_in_progress: bool
+```
+
+### **Phase 3: Parallel Processing Implementation**
+
+#### **Reuse Existing Functions:**
+
+**Transcription:**
+```python
+# Use existing _transcribe_parallel function
+files = [(file_path, model, language, "transcribe") for file_path in file_paths]
+results = await _transcribe_parallel(files, max_workers=len(files))
+```
+
+**Chunk Generation:**
+```python
+# Use existing vector_handler.generate_chunks for each file
+for transcription_result in results:
+    chunks = vector_handler.generate_chunks(transcription_result)
+    # Process chunks in parallel
+```
+
+**Upserting:**
+```python
+# Use existing vector_handler.upsert_chunks in parallel
+# Already supports parallel processing
+```
+
+### **Phase 4: Display Logic Updates**
+
+#### **File: [frontend/components/transcription-output.tsx](mdc:frontend/components/transcription-output.tsx)**
+
+**Changes Required:**
+```typescript
+// After comparison, find majority file and display its transcription
+const majorityFile = comparisonResult.majority_source_file
+const majorityTranscription = localTranscriptions.get(majorityFile)
+setTranscription(majorityTranscription)
+```
+
+### **Phase 5: File Upload UI Updates**
+
+#### **File: [frontend/components/file-upload-area.tsx](mdc:frontend/components/file-upload-area.tsx)**
+
+**Changes Required:**
+```typescript
+// Change from single file input to multiple file input
+<input type="file" multiple accept="audio/*,video/*" />
+```
+
+## 🚫 **What NOT to Change**
+
+### **Backend Functions (NO CHANGES):**
+- `_transcribe_parallel()` - Already supports multiple files
+- `vector_handler.generate_chunks()` - Already supports parallel
+- `vector_handler.upsert_chunks()` - Already supports parallel
+- `vector_handler.search_content_matches_optimized()` - NO CHANGES
+- `_calculate_majority_source_file()` - Already implemented
+
+### **Frontend Components (NO CHANGES):**
+- Color palette and UI design
+- Comparison result display logic
+- Timestamp highlighting
+- Error handling patterns
+
+### **API Endpoints (NO CHANGES):**
+- `/compare-content` - Already works with multiple stored files
+- `/clear-embeddings` - No changes needed
+- `/models` - No changes needed
+
+## 📊 **Storage Strategy**
+
+### **Current Storage:**
+- **Transcription**: Frontend state (immediately displayed)
+- **Chunks**: Pinecone (background)
+
+### **New Storage:**
+- **Transcriptions**: `Map<string, TranscriptionResponse>` (local, not displayed)
+- **Chunks**: Pinecone (background, same as before)
+- **Display**: Majority file transcription (after comparison)
+
+## 🎨 **UI/UX Guidelines**
+
+### **Color Palette (Maintain Current):**
+- Primary: `#1a1a1a` (dark background)
+- Secondary: `#2a2a2a` (dark-secondary)
+- Accent: `#ff6b35` (accent-orange)
+- Text: `#ffffff` (white)
+- Light Gray: `#cccccc` (light-gray)
+
+### **Design Patterns:**
+- Maintain existing glass-morphism effects
+- Keep current button styles and hover states
+- Preserve existing spacing and typography
+- Use existing loading indicators and progress bars
+
+## 🔧 **Technical Implementation Notes**
+
+### **Performance Optimizations:**
+- Use `ThreadPoolExecutor` for parallel transcription
+- Batch chunk generation for multiple files
+- Parallel upserting to Pinecone
+- Efficient memory management for local transcriptions
+
+### **Error Handling:**
+- Maintain existing error patterns
+- Add specific handling for multiple file uploads
+- Preserve existing retry mechanisms
+
+### **Testing Strategy:**
+- Test parallel processing with 2-5 files
+- Verify memory usage with large files
+- Ensure comparison accuracy with multiple sources
+- Validate majority voting logic
+
+## 📝 **Implementation Checklist**
+
+### **Frontend Changes:**
+- [ ] Update `UseWhisperAPIState` interface
+- [ ] Add `localTranscriptions` Map
+- [ ] Change `primaryFile` to `primaryFiles[]`
+- [ ] Add `uploadPrimaryFiles` action
+- [ ] Update file upload UI for multiple files
+- [ ] Modify display logic for majority file
+
+### **Backend Changes:**
+- [ ] Create `StoreMultiplePrimaryRequest` model
+- [ ] Create `StoreMultiplePrimaryResponse` model
+- [ ] Add `/store-multiple-primary` endpoint
+- [ ] Implement parallel processing logic
+- [ ] Add local transcription storage
+
+### **Integration:**
+- [ ] Update API service calls
+- [ ] Test parallel processing
+- [ ] Verify majority file display
+- [ ] Ensure backward compatibility
+
+## 🎯 **Success Criteria**
+
+1. **Multiple files** can be uploaded simultaneously
+2. **Parallel processing** works efficiently
+3. **Comparison results** show majority file correctly
+4. **Transcription display** shows majority file after comparison
+5. **Performance** remains optimal with multiple files
+6. **Existing functionality** is preserved
+7. **UI/UX** maintains current design standards
+description:
+globs:
+alwaysApply: false
+---

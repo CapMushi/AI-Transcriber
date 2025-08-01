@@ -87,6 +87,22 @@ export interface StorePrimaryResponse {
   storage_in_progress?: boolean  // NEW: Indicates if storage is happening in background
 }
 
+export interface StoreMultiplePrimaryRequest {
+  file_paths: string[]
+  original_filenames: string[]
+  model: string
+  language: string
+}
+
+export interface StoreMultiplePrimaryResponse {
+  success: boolean
+  message: string
+  files_processed: number
+  storage_in_progress: boolean
+  transcriptions: Record<string, any>  // filename -> transcription data
+  error?: string
+}
+
 export interface ClearEmbeddingsResponse {
   success: boolean
   message: string
@@ -118,6 +134,8 @@ class APIService {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`
+    console.log('🌐 API: Making request to:', url)
+    console.log('🌐 API: Request options:', options)
     
     const defaultOptions: RequestInit = {
       headers: {
@@ -128,10 +146,20 @@ class APIService {
     }
 
     try {
+      console.log('🔄 API: Sending fetch request...')
+      console.log('🔄 API: Fetch URL:', url)
+      console.log('🔄 API: Fetch options:', defaultOptions)
+      
       const response = await fetch(url, defaultOptions)
+      console.log('📥 API: Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      })
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        console.error('❌ API: Response not ok:', errorData)
         throw new APIError(
           errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
           response.status,
@@ -139,8 +167,11 @@ class APIService {
         )
       }
 
-      return await response.json()
+      const result = await response.json()
+      console.log('✅ API: Request successful, result:', result)
+      return result
     } catch (error) {
+      console.error('💥 API: Request failed:', error)
       if (error instanceof APIError) {
         throw error
       }
@@ -374,6 +405,64 @@ class APIService {
       }
       throw new APIError(
         error instanceof Error ? error.message : 'Store primary content failed',
+        0,
+        error
+      )
+    }
+  }
+
+  // Store Multiple Primary Content
+  async storeMultiplePrimaryContent(
+    filePaths: string[],
+    originalFilenames: string[],
+    model: string = 'base',
+    language: string = 'auto'
+  ): Promise<StoreMultiplePrimaryResponse> {
+    console.log('💾 API: Storing multiple primary content...')
+    console.log('📁 File paths:', filePaths)
+    console.log('📁 Original filenames:', originalFilenames)
+    console.log('🤖 Model:', model)
+    console.log('🌍 Language:', language)
+
+    try {
+      console.log('🔄 About to make request to /api/store-multiple-primary')
+      console.log('🔄 Request body:', {
+        file_paths: filePaths,
+        original_filenames: originalFilenames,
+        model,
+        language,
+      })
+      console.log('🔄 Request body JSON:', JSON.stringify({
+        file_paths: filePaths,
+        original_filenames: originalFilenames,
+        model,
+        language,
+      }))
+      
+      const result = await this.request<StoreMultiplePrimaryResponse>('/api/store-multiple-primary', {
+        method: 'POST',
+        body: JSON.stringify({
+          file_paths: filePaths,
+          original_filenames: originalFilenames,
+          model,
+          language,
+        }),
+      })
+
+      console.log('✅ API: Multiple primary content stored:', result)
+      return result
+    } catch (error) {
+      console.error('💥 API: Store multiple primary content error:', error)
+      console.error('💥 Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack',
+        type: typeof error
+      })
+      if (error instanceof APIError) {
+        throw error
+      }
+      throw new APIError(
+        error instanceof Error ? error.message : 'Store multiple primary content failed',
         0,
         error
       )
